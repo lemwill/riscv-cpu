@@ -15,11 +15,11 @@ logic [REGISTER_WIDTH-1:0] immediate;
 
 // If the operation is ADDI, use immediate as the second operand. Otherwise, use rs1_value.
 always_comb begin
-    if (decoded_instruction.opcode == I_TYPE && decoded_instruction.funct3 == ADDI) begin
-        immediate = REGISTER_WIDTH'(decoded_instruction.immediate);
-        alu_input2 = immediate;
-    end else begin
-        alu_input2 = rs1_value;
+    alu_input2 = 0;
+    if (decoded_instruction.opcode == I_TYPE) begin 
+        if (decoded_instruction.instr.i_type.funct3 == ADDI) begin
+            alu_input2 = REGISTER_WIDTH'(decoded_instruction.instr.i_type.imm);
+        end
     end
 end
 

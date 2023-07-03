@@ -1,0 +1,6 @@
+<testsuites name="results">
+  <testsuite name="all" package="all">
+    <property name="random_seed" value="1688421118" />
+    <testcase name="dff_simple_test" classname="test_dff" file="/Users/williamlemaire/dev/personal-projects/riscv-cpu/src/test_dff.py" lineno="13" time="0.002905130386352539" sim_time_ns="95000.001" ratio_time="32700770.143151745" />
+  </testsuite>
+</testsuites>

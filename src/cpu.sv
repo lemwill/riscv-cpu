@@ -10,7 +10,7 @@ module cpu (
 
 
 logic [REGISTER_WIDTH-1:0] instruction;
-alu_ops opcode;
+OpCode opcode;
 logic [REGISTER_WIDTH-1:0] program_counter;
 logic [REGISTER_WIDTH-1:0] alu_result;
 logic [REGISTER_WIDTH-1:0] rs1_value;
@@ -48,11 +48,24 @@ execution_unit execution_unit_inst (
     .alu_result(alu_result)
 );
 
-assign read_address_1 = decoded_instruction.rs1;
-assign read_address_2 = decoded_instruction.rs2;
-assign read_enable = 1'b1;
-assign write_enable = 1'b0;
-assign write_address = 5'b0;
+always_comb begin
+    write_data = 0;
+    write_address = 0;
+    write_enable = 0;
+    read_address_1 = 0;
+    read_address_2 = 0;
+    read_enable = 0;
+    if (decoded_instruction.opcode == I_TYPE) begin
+        // For ALU operations, the result comes from the ALU, and the destination is rd
+        write_enable = 1'b1;
+        write_data = alu_result;
+        write_address = decoded_instruction.instr.i_type.rd;
+        read_address_1 = decoded_instruction.instr.i_type.rs1;
+        read_enable = 1;
+    end
+end
+
+  
 
 // Instantiate the register file
 register_file register_file_inst (
