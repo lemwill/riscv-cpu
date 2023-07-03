@@ -13,12 +13,28 @@ module arithmetic_logic_unit
             I_TYPE: begin
                 case (decoded_instruction.instr.i_type.funct3)
                     ADDI: result = input1 + input2;
-                    // Add cases for other funct3 values here
+                    XORI: result = input1 ^ input2;
+                    ORI: result = input1 | input2;
+                    ANDI: result = input1 & input2;
+                    SLLI: result = input1 << input2[4:0];
+                    SRLI_OR_SRAI: result = input1 >> input2[4:0];
+                    SLTI: result = (input1 < input2) ? 1 : 0;
+                    SLTUI: result = (input1 < input2) ? 1 : 0;
                     default: result = 0;
                 endcase
             end
             R_TYPE: begin
-                // Handle R-type instructions here
+                case (decoded_instruction.instr.i_type.funct3)
+                    ADD_OR_SUB: result = input1 + input2;
+                    XOR: result = input1 ^ input2;
+                    OR: result = input1 | input2;
+                    AND: result = input1 & input2;
+                    SLL: result = input1 << input2[4:0];
+                    SRL_OR_SRA: result = input1 >> input2[4:0];
+                    SLT: result = (input1 < input2) ? 1 : 0;
+                    SLTU: result = (input1 < input2) ? 1 : 0;
+                    default: result = 0;
+                endcase
             end
             // Add cases for other opcode values here
             default: result = 0;

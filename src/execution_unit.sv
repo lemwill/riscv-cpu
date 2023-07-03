@@ -13,14 +13,20 @@ module execution_unit
 logic [REGISTER_WIDTH-1:0] alu_input2;
 logic [REGISTER_WIDTH-1:0] immediate;
 
-// If the operation is ADDI, use immediate as the second operand. Otherwise, use rs1_value.
 always_comb begin
-    alu_input2 = 0;
-    if (decoded_instruction.opcode == I_TYPE) begin 
-        if (decoded_instruction.instr.i_type.funct3 == ADDI) begin
-            alu_input2 = REGISTER_WIDTH'(decoded_instruction.instr.i_type.imm);
+    case (decoded_instruction.opcode)
+        I_TYPE: begin
+            case (decoded_instruction.instr.i_type.funct3)
+                SLLI: alu_input2 = REGISTER_WIDTH'(decoded_instruction.instr.i_type.imm[4:0]);
+                SRLI_OR_SRAI: alu_input2 = REGISTER_WIDTH'(decoded_instruction.instr.i_type.imm[4:0]);
+                default: alu_input2 = REGISTER_WIDTH'(decoded_instruction.instr.i_type.imm);
+            endcase
         end
-    end
+        R_TYPE: begin
+            alu_input2 = rs2_value;
+        end
+        default: alu_input2 = 0;
+    endcase
 end
 
     // Instantiate the ALU

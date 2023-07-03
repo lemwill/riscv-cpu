@@ -14,28 +14,39 @@ package common;
     } OpCode;
 
     typedef enum logic [2:0] {
+        ADD_OR_SUB = 'h0,
+        XOR = 'h4,
+        OR = 'h6,
+        AND = 'h7,
+        SLL = 'h1,
+        SRL_OR_SRA = 'h5,
+        SLT = 'h2,
+        SLTU = 'h3
+    } RTypeFunct3;
+
+    typedef enum logic [2:0] {
         ADDI = 'h0,
         XORI = 'h4,
         ORI = 'h6,
         ANDI = 'h7,
         SLLI = 'h1,
-        SRLI = 'h5,
+        SRLI_OR_SRAI = 'h5,
         SLTI = 'h2,
-        SLTIU = 'h3
-    } Funct3;
+        SLTUI = 'h3
+    } ITypeFunct3;
 
     typedef struct packed {
         logic [6:0] funct7;
         logic [4:0] rs2;
         logic [4:0] rs1;
-        Funct3 funct3;
+        RTypeFunct3 funct3;
         logic [4:0] rd;
     } r_type_t;
     
     typedef struct packed {
         logic [11:0] imm;
         logic [4:0] rs1;
-        Funct3 funct3;
+        ITypeFunct3 funct3;
         logic [4:0] rd;
     } i_type_t;
     
