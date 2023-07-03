@@ -1,0 +1,6 @@
+sim_build
+*.o
+*.hex
+*.bin
+program
+*.pyc
