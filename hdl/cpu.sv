@@ -7,8 +7,6 @@ module cpu (
     input logic rst
 );
 
-
-
 logic [REGISTER_WIDTH-1:0] instruction;
 OpCode opcode;
 logic [REGISTER_WIDTH-1:0] program_counter;
@@ -26,7 +24,7 @@ logic branch_taken;
 logic [REGISTER_WIDTH-1:0] port1_address;
 logic [REGISTER_WIDTH-1:0] port1_write_data;
 logic port1_write_en;
-
+logic [REGISTER_WIDTH/BYTE_WIDTH-1:0] port1_byte_enable;
 
 // Instanciate the instruction fetch
 fetch fetch_inst (
@@ -42,16 +40,29 @@ logic [REGISTER_WIDTH-1:0] port1_read_data;
 // Memory read and write mux
 always_comb begin
     
-    port1_write_data = 0;
-    port1_write_en   = 0;
-    port1_address    = 0;
+    port1_write_data  = 0;
+    port1_write_en    = 0;
+    port1_address     = 0;
+    port1_byte_enable = '1;
 
     if (decoded_instruction.opcode == OPCODE_LOAD) begin 
-        port1_address = rs1_value + REGISTER_WIDTH'(decoded_instruction.instr.i_type.immediate);       
+        port1_address = rs1_value + REGISTER_WIDTH'(decoded_instruction.instr.i_type.immediate);
+        case (decoded_instruction.instr.i_type.funct3)
+            LB: port1_byte_enable = 4'b1;
+            LH: port1_byte_enable = 4'b11;
+            LBU: port1_byte_enable = 4'b1;
+            LHU: port1_byte_enable = 4'b11;
+            default: port1_byte_enable = '1;
+        endcase
     end else if (decoded_instruction.opcode == OPCODE_STORE) begin 
         port1_address = rs1_value + REGISTER_WIDTH'(decoded_instruction.instr.s_type.immediate);      
         port1_write_data = rs2_value;
         port1_write_en = 1;
+        case (decoded_instruction.instr.s_type.funct3)
+            SB: port1_byte_enable = 4'b1;
+            SH: port1_byte_enable = 4'b11;
+            default: port1_byte_enable = '1;
+        endcase
     end
 end 
 
@@ -61,6 +72,7 @@ memory #(8, 1000) instruction_memory(
     .port1_write_data(port1_write_data),
     .port1_write_en(port1_write_en),
     .port1_address(port1_address),
+    .port1_byte_enable(port1_byte_enable),
     .port1_read_data(port1_read_data),
     .port2_address(program_counter),
     .port2_read_data(instruction)
@@ -117,7 +129,13 @@ always_comb begin
     end else if (decoded_instruction.opcode == OPCODE_LOAD) begin
         write_address = decoded_instruction.instr.i_type.rd;
         write_enable = 1'b1;
-        write_data = port1_read_data;
+        case (decoded_instruction.instr.i_type.funct3)
+            LB: write_data = {{(REGISTER_WIDTH-BYTE_WIDTH){port1_read_data[BYTE_WIDTH-1]}}, port1_read_data[BYTE_WIDTH-1:0]};
+            LH: write_data = {{(REGISTER_WIDTH-2*BYTE_WIDTH){port1_read_data[2*BYTE_WIDTH-1]}}, port1_read_data[2*BYTE_WIDTH-1:0]};
+            LBU: write_data = { {REGISTER_WIDTH-BYTE_WIDTH{1'b0}}, port1_read_data[BYTE_WIDTH-1:0] };
+            LHU: write_data = { {REGISTER_WIDTH-2*BYTE_WIDTH{1'b0}}, port1_read_data[2*BYTE_WIDTH-1:0] };
+            default: write_data = port1_read_data;
+        endcase
     end else if (decoded_instruction.opcode == OPCODE_BRANCH) begin
         read_address_1 = decoded_instruction.instr.b_type.rs1;
         read_address_2 = decoded_instruction.instr.b_type.rs2;

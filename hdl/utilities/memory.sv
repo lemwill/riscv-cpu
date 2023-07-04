@@ -1,16 +1,17 @@
 module memory #(parameter WIDTH=8, DEPTH)
     (
-        input logic clk,
-        input logic rst, 
-        input logic                       port1_write_en,
-        input logic [REGISTER_WIDTH-1:0]  port1_write_data,
-        input logic [REGISTER_WIDTH-1:0]  port1_address,
-        output logic [REGISTER_WIDTH-1:0] port1_read_data,
-        input logic [REGISTER_WIDTH-1:0]  port2_address,
-        output logic [REGISTER_WIDTH-1:0] port2_read_data
+        input logic                             clk,
+        input logic                             rst, 
+        input logic                             port1_write_en,
+        input logic [REGISTER_WIDTH-1:0]        port1_write_data,
+        input logic [REGISTER_WIDTH-1:0]        port1_address,
+        input logic [REGISTER_WIDTH/BYTE_WIDTH-1:0]  port1_byte_enable,
+        output logic [REGISTER_WIDTH-1:0]       port1_read_data,
+        input logic [REGISTER_WIDTH-1:0]        port2_address,
+        output logic [REGISTER_WIDTH-1:0]       port2_read_data
     );
     
-        logic [WIDTH-1:0] mem [DEPTH-1:0];
+        logic [BYTE_WIDTH-1:0] mem [DEPTH-1:0];
     
         initial begin
             integer file = $fopen("../verification/software/program.hex", "r");
@@ -49,7 +50,9 @@ module memory #(parameter WIDTH=8, DEPTH)
                 end
             end else if (port1_write_en) begin
                 for (int i = 0; i < 4; i = i + 1) begin
-                    mem[port1_address+i] <= port1_write_data[8*i +: 8];// Verify bit order
+                    if (port1_byte_enable[i]) begin 
+                        mem[port1_address+i] <= port1_write_data[8*i +: 8];// Verify bit order
+                    end
                 end
             end
         end

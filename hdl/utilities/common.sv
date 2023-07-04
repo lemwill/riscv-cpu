@@ -3,6 +3,7 @@ package common;
 
     localparam REGISTER_WIDTH = 32;
     localparam REGISTER_DEPTH = 32;
+    localparam BYTE_WIDTH = 8;
 
     /*typedef enum logic [6:0] {
         I_TYPE = 7'b0010011, 
@@ -55,6 +56,20 @@ package common;
     } RTypeFunct3;
 
     typedef enum logic [2:0] {
+        SB = 'h0,
+        SH = 'h1,
+        SW = 'h2
+    } STypeFunct3;
+
+    typedef enum logic [2:0] {
+        LB = 'h0,
+        LH = 'h1,
+        LW = 'h2,
+        LBU = 'h4,
+        LHU = 'h5
+    } FUNC3_LOAD;
+
+    typedef enum logic [2:0] {
         ADDI_OR_JAL = 'h0,
         XORI = 'h4,
         ORI = 'h6,
@@ -85,7 +100,7 @@ package common;
         logic [11:0] immediate;
         logic [4:0] rs2;
         logic [4:0] rs1;
-        RTypeFunct3 funct3;
+        STypeFunct3 funct3;
     } s_type_t;
     
 
@@ -106,7 +121,7 @@ package common;
         logic [6:0] immediate_11_5;
         logic [4:0] rs2;
         logic [4:0] rs1;
-        RTypeFunct3 funct3;
+        STypeFunct3 funct3;
         logic [4:0] immediate_4_0;
     } s_type_undecoded_t;
     
