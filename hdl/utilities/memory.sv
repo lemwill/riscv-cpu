@@ -33,7 +33,7 @@ module memory #(parameter WIDTH=8, DEPTH)
                 end
                 // Break the value into bytes
                 for (int j = 0; j < 4; j++) begin
-                    mem[i+j] = value[j*8+:8];
+                    mem[i+j] = value[(3-j)*8+:8];
                 end
                 // Reassemble the value in little-endian order
                 i = i + 4;
@@ -55,11 +55,11 @@ module memory #(parameter WIDTH=8, DEPTH)
         end
         
         always_comb begin
-            port1_read_data = {mem[port1_address], mem[port1_address+1], mem[port1_address+2], mem[port1_address+3]};
+            port1_read_data = {mem[port1_address+3], mem[port1_address+2], mem[port1_address+1], mem[port1_address]};
         end
 
         always_comb begin
-            port2_read_data = {mem[port2_address], mem[port2_address+1], mem[port2_address+2], mem[port2_address+3]};
+            port2_read_data = {mem[port2_address+3], mem[port2_address+2], mem[port2_address+1], mem[port2_address]};
         end
     endmodule
     
