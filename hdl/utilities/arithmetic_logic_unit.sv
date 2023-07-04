@@ -1,3 +1,5 @@
+import common::*;
+
 module arithmetic_logic_unit
     (
         input logic [REGISTER_WIDTH-1:0] input1,
@@ -10,9 +12,9 @@ module arithmetic_logic_unit
     begin
         result = 0; // default value
         case (decoded_instruction.opcode)
-            I_TYPE: begin
+            OPCODE_ARITHMETIC_IMMEDIATE: begin // I-TYPE
                 case (decoded_instruction.instr.i_type.funct3)
-                    ADDI: result = input1 + input2;
+                    ADDI_OR_JAL: result = input1 + input2;
                     XORI: result = input1 ^ input2;
                     ORI: result = input1 | input2;
                     ANDI: result = input1 & input2;
@@ -23,7 +25,7 @@ module arithmetic_logic_unit
                     default: result = 0;
                 endcase
             end
-            R_TYPE: begin
+            OPCODE_ARITHMETIC: begin // R-TYPE
                 case (decoded_instruction.instr.i_type.funct3)
                     ADD_OR_SUB: result = input1 + input2;
                     XOR: result = input1 ^ input2;

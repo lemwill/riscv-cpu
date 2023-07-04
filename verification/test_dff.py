@@ -22,7 +22,7 @@ async def dff_simple_test(dut):
     cocotb.start_soon(clock.start(start_high=False))
 
     # Synchronize with the clock. This will regisiter the initial `d` value
-    for i in range(10):
+    for i in range(100):
         await RisingEdge(dut.clk)
 
 

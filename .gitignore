@@ -1,4 +1,9 @@
-sim_build
+verification/sim_build
+verification/__pycache__
+verification/software/program_c.s
+verification/software/compile_c.sh
+verification/software/program.c
+*.fst
 *.o
 *.hex
 *.bin
