@@ -17,3 +17,10 @@ https://docs.cocotb.org/en/stable/install.html
 cd verification
 make
 ```
+
+# Compile software
+brew tap riscv/riscv
+brew install riscv-tools
+
+cd verification/software
+./compile.sh

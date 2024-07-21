@@ -9,3 +9,4 @@ verification/software/program.c
 *.bin
 program
 *.pyc
+verification/scripts/sim_build

@@ -20,6 +20,10 @@ async def dff_simple_test(dut):
     clock = Clock(dut.clk, 10, units="us")  # Create a 10us period clock on port clk
     # Start the clock. Start it low to avoid issues on the first RisingEdge
     cocotb.start_soon(clock.start(start_high=False))
+    
+    dut.rst.value = 1
+    await RisingEdge(dut.clk)
+    dut.rst.value = 0
 
     # Synchronize with the clock. This will regisiter the initial `d` value
     for i in range(100):

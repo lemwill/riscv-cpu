@@ -1,4 +1,4 @@
-module memory #(parameter WIDTH=8, DEPTH)
+module sram #(parameter WIDTH=8, DEPTH)
     (
         input logic                             clk,
         input logic                             rst, 

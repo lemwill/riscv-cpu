@@ -1,0 +1,2 @@
+CCACHE=ccache CCACHE_SLOPPINESS=pch_defines,time_macros SIM=verilator COCOTB_ENABLE_PROFILING=1 COCOTB_REDUCED_LOG_FMT=1 COCOTB_ANSI_OUTPUT=1 pytest -o log_cli=True --log-format="%(message)s" --cocotbxml=test_report.xml ../test_config.py --log-file=sim_log.txt
+# set CCACHE_SLOPPINESS to fix fatal error: file '/Users/wlemaire/dev/ttp/verification/scripts/sim_build/Vtop__pch.h' has been modified since the precompiled header 'Vtop__pch.h.fast.gch' was built: mtime changed (was 1719245859, now 1719245901) note: please rebuild precompiled header 'Vtop__pch.h.fast.gch'
