@@ -13,17 +13,11 @@ module stage1_fetch #(
   logic [WIDTH-1:0] program_counter;
   logic [WIDTH-1:0] program_counter_next;
 
-  // SRAM instruction read
-  assign sramport_instruction_read.enable = 1;
-  assign sramport_instruction_read.address = program_counter_next;
-  assign axis_fetch_to_decode.tdata.instruction = sramport_instruction_read.data;
-  assign axis_fetch_to_decode.tdata.program_counter = program_counter;
-
   // Combinatorial calculation of next program counter
   always_comb begin
-    if (rst) begin 
-        program_counter_next = 0;
-    end else begin 
+    if (rst) begin
+      program_counter_next = 0;
+    end else begin
       if (branch_taken) begin
         program_counter_next = branch_target;
       end else begin
@@ -41,6 +35,12 @@ module stage1_fetch #(
     end
   end
 
+
+  // SRAM instruction read
+  assign sramport_instruction_read.enable = 1;
+  assign sramport_instruction_read.address = program_counter_next;
+  assign axis_fetch_to_decode.tdata.instruction = sramport_instruction_read.data;
+  assign axis_fetch_to_decode.tdata.program_counter = program_counter;
 
 
 

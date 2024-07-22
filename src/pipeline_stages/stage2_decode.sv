@@ -95,18 +95,31 @@ module stage2_decode #(
     endcase
   end
 
-  assign registerport_read_1.enable = read_enable;
+  assign registerport_read_1.enable  = read_enable;
   assign registerport_read_1.address = read_address_1;
 
-  assign registerport_read_2.enable = read_enable;
+  assign registerport_read_2.enable  = read_enable;
   assign registerport_read_2.address = read_address_2;
 
+  // Flops
+  always_ff @(posedge clk) begin
+    if (rst) begin
+      axis_decode_to_execute.tvalid <= 0;
+    end else begin
+      axis_decode_to_execute.tvalid <= 0;
+      if (axis_fetch_to_decode.tvalid) begin
+        axis_decode_to_execute.tvalid <= 1;
+        axis_decode_to_execute.tdata.program_counter <= axis_fetch_to_decode.tdata.program_counter;
+        axis_decode_to_execute.tdata.decoded_instruction <= decoded_instruction;
+
+        axis_decode_to_execute.tdata.rs1_value <= registerport_read_1.data;
+        axis_decode_to_execute.tdata.rs2_value <= registerport_read_2.data;
+      end
+    end
+  end
 
 
-  assign axis_decode_to_execute.tdata.program_counter = axis_fetch_to_decode.tdata.program_counter;
-  assign axis_decode_to_execute.tdata.decoded_instruction = decoded_instruction;
-  assign axis_decode_to_execute.tvalid = 1;
-  //assign axis_fetch_to_decode.tready = axis_decode_to_execute.tready;
+  assign axis_fetch_to_decode.tready = axis_decode_to_execute.tready;
 
 
 endmodule

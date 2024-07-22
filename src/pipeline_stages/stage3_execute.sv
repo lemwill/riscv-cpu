@@ -110,14 +110,24 @@ module stage3_execute (
       .result(alu_result)
   );
 
-  // Output assignments
-  assign axis_execute_to_memory.tdata.decoded_instruction = decoded_instruction;
-  assign axis_execute_to_memory.tdata.rs1_value = rs1_value;
-  assign axis_execute_to_memory.tdata.rs2_value = rs2_value;
-  assign axis_execute_to_memory.tdata.alu_result = alu_result;
-  assign axis_execute_to_memory.tdata.branch_taken = branch_taken;
-  assign axis_execute_to_memory.tdata.branch_target = branch_target;
-  assign axis_execute_to_memory.tvalid = axis_decode_to_execute.tvalid;
+
+  always_ff @(posedge clk) begin
+    if (rst) begin
+      axis_execute_to_memory.tvalid <= 0;
+    end else begin
+      axis_execute_to_memory.tvalid <= 0;
+      if (axis_decode_to_execute.tvalid) begin
+        axis_execute_to_memory.tvalid <= 1;
+        axis_execute_to_memory.tdata.decoded_instruction <= decoded_instruction;
+        axis_execute_to_memory.tdata.rs1_value <= rs1_value;
+        axis_execute_to_memory.tdata.rs2_value <= rs2_value;
+        axis_execute_to_memory.tdata.alu_result <= alu_result;
+        axis_execute_to_memory.tdata.branch_taken <= branch_taken;
+        axis_execute_to_memory.tdata.branch_target <= branch_target;
+      end
+    end
+  end
+
   assign axis_decode_to_execute.tready = axis_execute_to_memory.tready;
 
 endmodule

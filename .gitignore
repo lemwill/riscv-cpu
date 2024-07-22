@@ -1,5 +1,3 @@
-verification/sim_build
-verification/__pycache__
 verification/software/program_c.s
 verification/software/compile_c.sh
 verification/software/program.c
@@ -9,4 +7,11 @@ verification/software/program.c
 *.bin
 program
 *.pyc
-verification/scripts/sim_build
+__pycache__
+.pytest_cache
+test_report.xml
+sim_build
+.DS_Store
+.cocotb-results
+.vscode
+sim_log.txt
