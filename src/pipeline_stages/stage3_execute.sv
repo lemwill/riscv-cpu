@@ -42,10 +42,32 @@ module stage3_execute (
   //====================================================================================
   task handle_arithmetic_immediate();
     alu_input2 = REGISTER_WIDTH'(decoded_instruction.instr.i_type.immediate);
+    case (decoded_instruction.instr.i_type.funct3)
+      ADDI_OR_JAL: alu_result = rs1_value + alu_input2;
+      XORI: alu_result = rs1_value ^ alu_input2;
+      ORI: alu_result = rs1_value | alu_input2;
+      ANDI: alu_result = rs1_value & alu_input2;
+      SLLI: alu_result = rs1_value << alu_input2[4:0];
+      SRLI_OR_SRAI: alu_result = rs1_value >> alu_input2[4:0];
+      SLTI: alu_result = (rs1_value < alu_input2) ? 1 : 0;
+      SLTUI: alu_result = (rs1_value < alu_input2) ? 1 : 0;
+      default: alu_result = 0;
+    endcase
   endtask
 
   task handle_arithmetic();
     alu_input2 = rs2_value;
+    case (decoded_instruction.instr.i_type.funct3)
+      ADD_OR_SUB: alu_result = rs1_value + alu_input2;
+      XOR: alu_result = rs1_value ^ alu_input2;
+      OR: alu_result = rs1_value | alu_input2;
+      AND: alu_result = rs1_value & alu_input2;
+      SLL: alu_result = rs1_value << alu_input2[4:0];
+      SRL_OR_SRA: alu_result = rs1_value >> alu_input2[4:0];
+      SLT: alu_result = (rs1_value < alu_input2) ? 1 : 0;
+      SLTU: alu_result = (rs1_value < alu_input2) ? 1 : 0;
+      default: alu_result = 0;
+    endcase
   endtask
 
   task handle_branch();
@@ -91,6 +113,7 @@ module stage3_execute (
     load_address = 0;
     store_address = 0;
     store_data = 0;
+    alu_result = 0;
     case (decoded_instruction.opcode)
       OP_ARITHMETIC_IMMEDIATE: handle_arithmetic_immediate();
       OP_ARITHMETIC: handle_arithmetic();
@@ -103,17 +126,6 @@ module stage3_execute (
       end
     endcase
   end
-
-  //====================================================================================
-  // Arithmetic Logic Unit
-  //====================================================================================
-  arithmetic_logic_unit alu_inst (
-      .input1(rs1_value),
-      .input2(alu_input2),
-      .decoded_instruction(decoded_instruction),
-      .result(alu_result)
-  );
-
 
   always_ff @(posedge clk) begin
     if (rst) begin
