@@ -3,6 +3,7 @@ module stage2_decode #(
 ) (
     input logic clk,
     input logic rst,
+    input logic drop_instruction_decode_stage,
     Axis.in axis_fetch_to_decode,
     Axis.out axis_decode_to_execute,
     MemoryInterface.read_out registerport_read_1,
@@ -19,13 +20,13 @@ module stage2_decode #(
 
   always_comb begin
     case (undecoded_instruction.opcode)
-      OPCODE_ARITHMETIC_IMMEDIATE | OPCODE_LOAD | OPCODE_JALR: begin  // I-TYPE
+      OP_ARITHMETIC_IMMEDIATE | OP_LOAD | OP_JALR: begin  // I-TYPE
         decoded_instruction = undecoded_instruction;
       end
-      OPCODE_ARITHMETIC: begin  // R-TYPE
+      OP_ARITHMETIC: begin  // R-TYPE
         decoded_instruction = undecoded_instruction;
       end
-      OPCODE_BRANCH: begin  // B-TYPE
+      OP_BRANCH: begin  // B-TYPE
         decoded_instruction.opcode = undecoded_instruction.opcode;
         decoded_instruction.instr.b_type.immediate = {
           undecoded_instruction.instr.b_type.immediate_12,
@@ -38,7 +39,7 @@ module stage2_decode #(
         decoded_instruction.instr.b_type.funct3 = undecoded_instruction.instr.b_type.funct3;
 
       end
-      OPCODE_JAL: begin  // J-TYPE
+      OP_JAL: begin  // J-TYPE
         decoded_instruction.opcode = undecoded_instruction.opcode;
         decoded_instruction.instr.j_type.immediate = {
           undecoded_instruction.instr.j_type.immediate_20,
@@ -49,7 +50,7 @@ module stage2_decode #(
         decoded_instruction.instr.j_type.rd = undecoded_instruction.instr.j_type.rd;
       end
 
-      OPCODE_STORE: begin  // S-TYPE
+      OP_STORE: begin  // S-TYPE
         decoded_instruction.opcode = undecoded_instruction.opcode;
         decoded_instruction.instr.s_type.immediate = {
           undecoded_instruction.instr.s_type.immediate_11_5,
@@ -70,17 +71,17 @@ module stage2_decode #(
     read_enable = 0;
 
     case (decoded_instruction.opcode)
-      OPCODE_ARITHMETIC_IMMEDIATE, OPCODE_JALR, OPCODE_ARITHMETIC: begin
+      OP_ARITHMETIC_IMMEDIATE, OP_JALR, OP_ARITHMETIC: begin
         read_address_1 = decoded_instruction.instr.i_type.rs1;
         read_enable = 1;
       end
-      OPCODE_STORE: begin
+      OP_STORE: begin
         read_address_1 = decoded_instruction.instr.s_type.rs1;
         read_address_2 = decoded_instruction.instr.s_type.rs2;
         read_enable = 1;
       end
 
-      OPCODE_BRANCH: begin
+      OP_BRANCH: begin
         read_address_1 = decoded_instruction.instr.b_type.rs1;
         read_address_2 = decoded_instruction.instr.b_type.rs2;
         read_enable = 1;
@@ -107,10 +108,11 @@ module stage2_decode #(
       axis_decode_to_execute.tvalid <= 0;
     end else begin
       axis_decode_to_execute.tvalid <= 0;
-      if (axis_fetch_to_decode.tvalid) begin
+      if (axis_fetch_to_decode.tvalid && !drop_instruction_decode_stage) begin
         axis_decode_to_execute.tvalid <= 1;
         axis_decode_to_execute.tdata.program_counter <= axis_fetch_to_decode.tdata.program_counter;
         axis_decode_to_execute.tdata.decoded_instruction <= decoded_instruction;
+        axis_decode_to_execute.tdata.branch_taken_prediction <= axis_fetch_to_decode.tdata.branch_taken_prediction;
 
         axis_decode_to_execute.tdata.rs1_value <= registerport_read_1.data;
         axis_decode_to_execute.tdata.rs2_value <= registerport_read_2.data;

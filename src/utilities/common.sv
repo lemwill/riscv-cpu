@@ -17,20 +17,20 @@ package common;
     } OpCode;*/
 
   typedef enum logic [6:0] {
-    OPCODE_LUI                  = 7'b0110111,  // Load Upper Immediate
-    OPCODE_AUIPC                = 7'b0010111,  // Add Upper Immediate to PC
-    OPCODE_JAL                  = 7'b1101111,  // Jump and Link
-    OPCODE_JALR                 = 7'b1100111,  // Jump and Link Register
-    OPCODE_BRANCH               = 7'b1100011,  // Conditional Branch
-    OPCODE_LOAD                 = 7'b0000011,  // Load from Memory
-    OPCODE_STORE                = 7'b0100011,  // Store to Memory
-    OPCODE_ARITHMETIC_IMMEDIATE = 7'b0010011,  // Arithmetic Immediate
-    OPCODE_ARITHMETIC           = 7'b0110011,  // Arithmetic Operand
-    OPCODE_MISC_MEMORY          = 7'b0001111,  // Miscellaneous Memory
-    OPCODE_SYSTEM               = 7'b1110011,  // System Instruction
-    OPCODE_LOAD_FP              = 7'b0000111,  // Load Floating Point
-    OPCODE_STORE_FP             = 7'b0100111,  // Store Floating Point
-    OPCODE_ATOMIC_MEMORY        = 7'b0101111   // Atomic Memory Operation
+    OP_LUI                  = 7'b0110111,  // Load Upper Immediate
+    OP_AUIPC                = 7'b0010111,  // Add Upper Immediate to PC
+    OP_JAL                  = 7'b1101111,  // Jump and Link
+    OP_JALR                 = 7'b1100111,  // Jump and Link Register
+    OP_BRANCH               = 7'b1100011,  // Conditional Branch
+    OP_LOAD                 = 7'b0000011,  // Load from Memory
+    OP_STORE                = 7'b0100011,  // Store to Memory
+    OP_ARITHMETIC_IMMEDIATE = 7'b0010011,  // Arithmetic Immediate
+    OP_ARITHMETIC           = 7'b0110011,  // Arithmetic Operand
+    OP_MISC_MEMORY          = 7'b0001111,  // Miscellaneous Memory
+    OP_SYSTEM               = 7'b1110011,  // System Instruction
+    OP_LOAD_FP              = 7'b0000111,  // Load Floating Point
+    OP_STORE_FP             = 7'b0100111,  // Store Floating Point
+    OP_ATOMIC_MEMORY        = 7'b0101111   // Atomic Memory Operation
   } OpCode;
 
   typedef enum logic [2:0] {
@@ -170,6 +170,7 @@ package common;
   typedef struct packed {
     logic [REGISTER_WIDTH-1:0] instruction;
     logic [REGISTER_WIDTH-1:0] program_counter;
+    logic branch_taken_prediction;
   } fetch_to_decode_t;
 
   typedef struct packed {
@@ -177,6 +178,7 @@ package common;
     RegisterValue rs1_value;
     RegisterValue rs2_value;
     logic [REGISTER_WIDTH-1:0] program_counter;
+    logic branch_taken_prediction;
   } decode_to_execute_t;
 
   typedef struct packed {

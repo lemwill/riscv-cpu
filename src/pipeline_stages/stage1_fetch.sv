@@ -41,6 +41,8 @@ module stage1_fetch #(
   assign sramport_instruction_read.address = program_counter_next;
   assign axis_fetch_to_decode.tdata.instruction = sramport_instruction_read.data;
   assign axis_fetch_to_decode.tdata.program_counter = program_counter;
+  assign axis_fetch_to_decode.tdata.branch_taken_prediction = 0;
+  assign axis_fetch_to_decode.tvalid = 1;
 
 
 

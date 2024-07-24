@@ -20,6 +20,8 @@ module cpu (
 
   logic [31:0] branch_target;
   logic branch_taken;
+  logic drop_instruction_decode_stage;
+
 
   instructioncache #(
       .DEPTH(10000),
@@ -58,6 +60,7 @@ module cpu (
   stage2_decode i_stage2_decode (
       .clk,
       .rst,
+      .drop_instruction_decode_stage,
       .axis_fetch_to_decode,
       .axis_decode_to_execute,
       .registerport_read_1,
@@ -67,6 +70,7 @@ module cpu (
   stage3_execute i_stage3_execute (
       .clk,
       .rst,
+      .drop_instruction_decode_stage,
       .axis_decode_to_execute,
       .axis_execute_to_memory,
       .branch_target,

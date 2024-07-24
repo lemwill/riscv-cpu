@@ -5,6 +5,7 @@ module stage3_execute (
     input logic rst,
     output logic branch_taken,
     output logic [REGISTER_WIDTH-1:0] branch_target,
+    output logic drop_instruction_decode_stage,
     Axis.in axis_decode_to_execute,
     Axis.out axis_execute_to_memory
 );
@@ -23,6 +24,9 @@ module stage3_execute (
   logic [REGISTER_WIDTH-1:0] load_address;
   logic [REGISTER_WIDTH-1:0] store_address;
   logic [REGISTER_WIDTH-1:0] store_data;
+  logic branch_taken_next;
+  logic [REGISTER_WIDTH-1:0] branch_target_next;
+  logic drop_instruction_execute_stage;
 
 
   //====================================================================================
@@ -46,25 +50,25 @@ module stage3_execute (
 
   task handle_branch();
     case (decoded_instruction.instr.b_type.funct3)
-      BEQ: branch_taken = (rs1_value == rs2_value);
-      BNE: branch_taken = (rs1_value != rs2_value);
-      BLT: branch_taken = ($signed(rs1_value) < $signed(rs2_value));
-      BGE: branch_taken = ($signed(rs1_value) >= $signed(rs2_value));
-      BLTU: branch_taken = (rs1_value < rs2_value);
-      BGEU: branch_taken = (rs1_value >= rs2_value);
-      default: branch_taken = 0;
+      BEQ: branch_taken_next = (rs1_value == rs2_value);
+      BNE: branch_taken_next = (rs1_value != rs2_value);
+      BLT: branch_taken_next = ($signed(rs1_value) < $signed(rs2_value));
+      BGE: branch_taken_next = ($signed(rs1_value) >= $signed(rs2_value));
+      BLTU: branch_taken_next = (rs1_value < rs2_value);
+      BGEU: branch_taken_next = (rs1_value >= rs2_value);
+      default: branch_taken_next = 0;
     endcase
-    branch_target = program_counter + (REGISTER_WIDTH'(decoded_instruction.instr.b_type.immediate) << 1);
+    branch_target_next = program_counter + (REGISTER_WIDTH'(decoded_instruction.instr.b_type.immediate) << 1);
   endtask
 
   task handle_jalr();
-    branch_taken  = 1;
-    branch_target = rs1_value + REGISTER_WIDTH'(decoded_instruction.instr.i_type.immediate);
+    branch_taken_next  = 1;
+    branch_target_next = rs1_value + REGISTER_WIDTH'(decoded_instruction.instr.i_type.immediate);
   endtask
 
   task handle_jal();
-    branch_taken = 1;
-    branch_target = program_counter +
+    branch_taken_next = 1;
+    branch_target_next = program_counter +
         (REGISTER_WIDTH'($signed(decoded_instruction.instr.j_type.immediate)) << 1);
   endtask
 
@@ -81,20 +85,20 @@ module stage3_execute (
   // Handle opcode process
   //====================================================================================
   always begin
-    branch_taken = 0;
+    branch_taken_next = 0;
     alu_input2 = 0;
-    branch_target = 0;
+    branch_target_next = 0;
     load_address = 0;
     store_address = 0;
     store_data = 0;
     case (decoded_instruction.opcode)
-      OPCODE_ARITHMETIC_IMMEDIATE: handle_arithmetic_immediate();
-      OPCODE_ARITHMETIC: handle_arithmetic();
-      OPCODE_BRANCH: handle_branch();
-      OPCODE_JALR: handle_jalr();
-      OPCODE_JAL: handle_jal();
-      OPCODE_LOAD: handle_load();
-      OPCODE_STORE: handle_store();
+      OP_ARITHMETIC_IMMEDIATE: handle_arithmetic_immediate();
+      OP_ARITHMETIC: handle_arithmetic();
+      OP_BRANCH: handle_branch();
+      OP_JALR: handle_jalr();
+      OP_JAL: handle_jal();
+      OP_LOAD: handle_load();
+      OP_STORE: handle_store();
       default: begin
       end
     endcase
@@ -114,16 +118,33 @@ module stage3_execute (
   always_ff @(posedge clk) begin
     if (rst) begin
       axis_execute_to_memory.tvalid <= 0;
+      branch_taken <= 0;
+      axis_execute_to_memory.tdata.branch_taken <= 0;
+      drop_instruction_decode_stage <= 0;
+      drop_instruction_execute_stage <= 0;
     end else begin
       axis_execute_to_memory.tvalid <= 0;
-      if (axis_decode_to_execute.tvalid) begin
+      branch_taken <= 0;
+      axis_execute_to_memory.tdata.branch_taken <= 0;
+      drop_instruction_decode_stage <= 0;
+      drop_instruction_execute_stage <= 0;
+
+      if (axis_decode_to_execute.tvalid && !drop_instruction_execute_stage) begin
         axis_execute_to_memory.tvalid <= 1;
         axis_execute_to_memory.tdata.decoded_instruction <= decoded_instruction;
         axis_execute_to_memory.tdata.rs1_value <= rs1_value;
         axis_execute_to_memory.tdata.rs2_value <= rs2_value;
         axis_execute_to_memory.tdata.alu_result <= alu_result;
-        axis_execute_to_memory.tdata.branch_taken <= branch_taken;
-        axis_execute_to_memory.tdata.branch_target <= branch_target;
+        axis_execute_to_memory.tdata.branch_taken <= branch_taken_next;
+        axis_execute_to_memory.tdata.branch_target <= branch_target_next;
+
+        if (axis_decode_to_execute.tdata.branch_taken_prediction != branch_taken_next) begin
+          branch_taken <= branch_taken_next;
+          branch_target <= branch_target_next;
+          drop_instruction_decode_stage <= 1;
+          drop_instruction_execute_stage <= 1;
+        end
+
       end
     end
   end
