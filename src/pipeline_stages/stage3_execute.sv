@@ -7,7 +7,9 @@ module stage3_execute (
     output logic [REGISTER_WIDTH-1:0] branch_target,
     output logic drop_instruction_decode_stage,
     Axis.in axis_decode_to_execute,
-    Axis.out axis_execute_to_memory
+    Axis.out axis_execute_to_memory,
+    input RegisterValue rs1_value,
+    input RegisterValue rs2_value
 );
 
   //====================================================================================
@@ -18,8 +20,7 @@ module stage3_execute (
   logic [REGISTER_WIDTH-1:0] alu_result;
   logic [REGISTER_WIDTH-1:0] program_counter;
   instruction_t decoded_instruction;
-  RegisterValue rs1_value;
-  RegisterValue rs2_value;
+
 
   logic [REGISTER_WIDTH-1:0] load_address;
   logic [REGISTER_WIDTH-1:0] store_address;
@@ -34,8 +35,6 @@ module stage3_execute (
   //====================================================================================
   assign decoded_instruction = axis_decode_to_execute.tdata.decoded_instruction;
   assign program_counter = axis_decode_to_execute.tdata.program_counter;
-  assign rs1_value = axis_decode_to_execute.tdata.rs1_value;
-  assign rs2_value = axis_decode_to_execute.tdata.rs2_value;
 
   //====================================================================================
   // Opcode tasks

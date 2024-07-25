@@ -12,12 +12,12 @@ src_dir = os.path.dirname(__file__) + "/../src"
 compile_args_value = [
     "--trace-fst",
     "--trace-structs",
-    #"-Wno-WIDTHTRUNC",
-    #"-Wno-WIDTHEXPAND",
+    # "-Wno-WIDTHTRUNC",
+    # "-Wno-WIDTHEXPAND",
     "-output-split",
     "15000",
-    #"--trace-threads",
-    #"2",
+    # "--trace-threads",
+    # "2",
     # "-x-assign",
     # "fast",
     # "-x-initial",
@@ -25,10 +25,10 @@ compile_args_value = [
     # "--noassert",
     # "--prof-exec",
     # "--prof-cfuncs",
-    #"--trace-max-array",
-    #"600",
-    #"--trace-max-width",
-    #"600",
+    # "--trace-max-array",
+    # "600",
+    # "--trace-max-width",
+    # "600",
     "-j",
     "8",
     "-CFLAGS",
@@ -37,9 +37,10 @@ compile_args_value = [
     "1ns/10ps"
 ]
 
-make_args_value=[]
+make_args_value = []
 if platform.system() == "Darwin":  # Check if the OS is macOS
     make_args_value.extend(["CXX=clang++", "-j", "8"])
+
 
 def test_dff_verilog():
     run(
@@ -56,6 +57,7 @@ def test_dff_verilog():
             os.path.join(src_dir, "pipeline_stages/stage5_writeback.sv"),
             os.path.join(src_dir, "pipeline_stages/instructioncache.sv"),
             os.path.join(src_dir, "pipeline_stages/datacache.sv"),
+            os.path.join(src_dir, "pipeline_stages/forwarding_unit.sv"),
             os.path.join(src_dir, "cpu.sv")
         ],
         toplevel="cpu",

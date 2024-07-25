@@ -21,6 +21,8 @@ module cpu (
   logic [31:0] branch_target;
   logic branch_taken;
   logic drop_instruction_decode_stage;
+  RegisterValue rs1_value;
+  RegisterValue rs2_value;
 
 
   instructioncache #(
@@ -71,6 +73,8 @@ module cpu (
       .clk,
       .rst,
       .drop_instruction_decode_stage,
+      .rs1_value,
+      .rs2_value,
       .axis_decode_to_execute,
       .axis_execute_to_memory,
       .branch_target,
@@ -90,6 +94,14 @@ module cpu (
       .rst,
       .axis_memory_to_writeback,
       .registerport_write
+  );
+
+  forwarding_unit i_forwarding_unit (
+      .axis_decode_to_execute,
+      .axis_execute_to_memory,
+      .axis_memory_to_writeback,
+      .rs1_value,
+      .rs2_value
   );
 
 endmodule
