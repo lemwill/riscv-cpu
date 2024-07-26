@@ -27,7 +27,7 @@ async def dff_simple_test(dut):
     dut.rst.value = 0
 
     # Synchronize with the clock. This will regisiter the initial `d` value
-    for i in range(100):
+    for i in range(1000):
         await RisingEdge(dut.clk)
 
 

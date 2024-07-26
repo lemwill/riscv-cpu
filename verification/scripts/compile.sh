@@ -1,0 +1,1 @@
+cd ../software && ./compile.sh && cd ../scripts

@@ -35,7 +35,7 @@ module cpu (
 
   datacache #(
       .DATA_WIDTH(REGISTER_WIDTH),
-      .DEPTH(10000)
+      .DEPTH(1000)
   ) i_datacache (
       .clk,
       .read_write(sramport_data)

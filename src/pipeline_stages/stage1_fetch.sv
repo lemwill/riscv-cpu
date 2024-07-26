@@ -29,7 +29,7 @@ module stage1_fetch #(
   // Flops
   always_ff @(posedge clk) begin
     if (rst) begin
-      program_counter <= -4;
+      program_counter <= 0;
     end else begin
       program_counter <= program_counter_next;
     end
