@@ -19,48 +19,59 @@ module stage2_decode #(
   logic [$clog2(REGISTER_DEPTH)-1:0] read_address_2;
 
   always_comb begin
+    decoded_instruction = 0;
     case (undecoded_instruction.opcode)
-      OP_ARITHMETIC_IMMEDIATE | OP_LOAD | OP_JALR: begin  // I-TYPE
-        decoded_instruction = undecoded_instruction;
+      OP_ARITHMETIC_IMMEDIATE, OP_LOAD, OP_JALR: begin  // I-TYPE
+        decoded_instruction.opcode = undecoded_instruction.opcode;
+        decoded_instruction.immediate.i_type = undecoded_instruction.instr.i_type.immediate;
+        decoded_instruction.rs1 = undecoded_instruction.instr.i_type.rs1;
+        decoded_instruction.funct3 = undecoded_instruction.instr.i_type.funct3;
+        decoded_instruction.rd = undecoded_instruction.instr.i_type.rd;
       end
       OP_ARITHMETIC: begin  // R-TYPE
-        decoded_instruction = undecoded_instruction;
+        decoded_instruction.opcode = undecoded_instruction.opcode;
+        decoded_instruction.rd = undecoded_instruction.instr.r_type.rd;
+        decoded_instruction.funct3 = undecoded_instruction.instr.r_type.funct3;
+        decoded_instruction.rs1 = undecoded_instruction.instr.r_type.rs1;
+        decoded_instruction.rs2 = undecoded_instruction.instr.r_type.rs2;
+        decoded_instruction.funct7 = undecoded_instruction.instr.r_type.funct7;
       end
       OP_BRANCH: begin  // B-TYPE
         decoded_instruction.opcode = undecoded_instruction.opcode;
-        decoded_instruction.instr.b_type.immediate = {
+        decoded_instruction.immediate.b_type = {
           undecoded_instruction.instr.b_type.immediate_12,
           undecoded_instruction.instr.b_type.immediate_11,
           undecoded_instruction.instr.b_type.immediate_10_5,
           undecoded_instruction.instr.b_type.immediate_4_1
         };
-        decoded_instruction.instr.b_type.rs2 = undecoded_instruction.instr.b_type.rs2;
-        decoded_instruction.instr.b_type.rs1 = undecoded_instruction.instr.b_type.rs1;
-        decoded_instruction.instr.b_type.funct3 = undecoded_instruction.instr.b_type.funct3;
+        decoded_instruction.rs2 = undecoded_instruction.instr.b_type.rs2;
+        decoded_instruction.rs1 = undecoded_instruction.instr.b_type.rs1;
+        decoded_instruction.funct3 = undecoded_instruction.instr.b_type.funct3;
 
       end
       OP_JAL: begin  // J-TYPE
         decoded_instruction.opcode = undecoded_instruction.opcode;
-        decoded_instruction.instr.j_type.immediate = {
+        decoded_instruction.immediate.j_type = {
           undecoded_instruction.instr.j_type.immediate_20,
           undecoded_instruction.instr.j_type.immediate_19_12,
           undecoded_instruction.instr.j_type.immediate_11,
           undecoded_instruction.instr.j_type.immediate_10_1
         };
-        decoded_instruction.instr.j_type.rd = undecoded_instruction.instr.j_type.rd;
+        decoded_instruction.rd = undecoded_instruction.instr.j_type.rd;
       end
 
       OP_STORE: begin  // S-TYPE
         decoded_instruction.opcode = undecoded_instruction.opcode;
-        decoded_instruction.instr.s_type.immediate = {
+        decoded_instruction.immediate.s_type = {
           undecoded_instruction.instr.s_type.immediate_11_5,
           undecoded_instruction.instr.s_type.immediate_4_0
         };
-        decoded_instruction.instr.s_type.rs2 = undecoded_instruction.instr.s_type.rs2;
-        decoded_instruction.instr.s_type.rs1 = undecoded_instruction.instr.s_type.rs1;
-        decoded_instruction.instr.s_type.funct3 = undecoded_instruction.instr.s_type.funct3;
+        decoded_instruction.rs2 = undecoded_instruction.instr.s_type.rs2;
+        decoded_instruction.rs1 = undecoded_instruction.instr.s_type.rs1;
+        decoded_instruction.funct3 = undecoded_instruction.instr.s_type.funct3;
       end
-      default: decoded_instruction = undecoded_instruction;
+      default: begin
+      end
     endcase
   end
 
@@ -72,18 +83,18 @@ module stage2_decode #(
 
     case (decoded_instruction.opcode)
       OP_ARITHMETIC_IMMEDIATE, OP_JALR, OP_ARITHMETIC: begin
-        read_address_1 = decoded_instruction.instr.i_type.rs1;
+        read_address_1 = decoded_instruction.rs1;
         read_enable = 1;
       end
       OP_STORE: begin
-        read_address_1 = decoded_instruction.instr.s_type.rs1;
-        read_address_2 = decoded_instruction.instr.s_type.rs2;
+        read_address_1 = decoded_instruction.rs1;
+        read_address_2 = decoded_instruction.rs2;
         read_enable = 1;
       end
 
       OP_BRANCH: begin
-        read_address_1 = decoded_instruction.instr.b_type.rs1;
-        read_address_2 = decoded_instruction.instr.b_type.rs2;
+        read_address_1 = decoded_instruction.rs1;
+        read_address_2 = decoded_instruction.rs2;
         read_enable = 1;
       end
 

@@ -13,21 +13,21 @@ module stage5_writeback (
   task handle_arithmetic_jalr();
     write_enable = 1'b1;
     write_data = axis_memory_to_writeback.tdata.alu_result;
-    write_address = axis_memory_to_writeback.tdata.decoded_instruction.instr.i_type.rd;
+    write_address = axis_memory_to_writeback.tdata.decoded_instruction.rd;
   endtask
 
   // Task to handle JAL instruction
   task handle_jal();
     write_enable = 1'b1;
     write_data = axis_memory_to_writeback.tdata.branch_target;
-    write_address = axis_memory_to_writeback.tdata.decoded_instruction.instr.j_type.rd;
+    write_address = axis_memory_to_writeback.tdata.decoded_instruction.rd;
   endtask
 
   // Task to handle LOAD instruction
   task handle_load();
-    write_address = axis_memory_to_writeback.tdata.decoded_instruction.instr.i_type.rd;
+    write_address = axis_memory_to_writeback.tdata.decoded_instruction.rd;
     write_enable  = 1'b1;
-    case (axis_memory_to_writeback.tdata.decoded_instruction.instr.i_type.funct3)
+    case (axis_memory_to_writeback.tdata.decoded_instruction.funct3)
       LB:
       write_data = {
         {(REGISTER_WIDTH - BYTE_WIDTH) {axis_memory_to_writeback.tdata.data_from_memory[BYTE_WIDTH-1]}},

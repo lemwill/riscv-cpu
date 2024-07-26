@@ -40,8 +40,8 @@ module stage3_execute (
   // Opcode tasks
   //====================================================================================
   task handle_arithmetic_immediate();
-    alu_input2 = REGISTER_WIDTH'(decoded_instruction.instr.i_type.immediate);
-    case (decoded_instruction.instr.i_type.funct3)
+    alu_input2 = REGISTER_WIDTH'(decoded_instruction.immediate.i_type);
+    case (decoded_instruction.funct3)
       ADDI_OR_JAL: alu_result = rs1_value + alu_input2;
       XORI: alu_result = rs1_value ^ alu_input2;
       ORI: alu_result = rs1_value | alu_input2;
@@ -56,7 +56,7 @@ module stage3_execute (
 
   task handle_arithmetic();
     alu_input2 = rs2_value;
-    case (decoded_instruction.instr.i_type.funct3)
+    case (decoded_instruction.funct3)
       ADD_OR_SUB: alu_result = rs1_value + alu_input2;
       XOR: alu_result = rs1_value ^ alu_input2;
       OR: alu_result = rs1_value | alu_input2;
@@ -70,7 +70,7 @@ module stage3_execute (
   endtask
 
   task handle_branch();
-    case (decoded_instruction.instr.b_type.funct3)
+    case (decoded_instruction.funct3)
       BEQ: branch_taken_next = (rs1_value == rs2_value);
       BNE: branch_taken_next = (rs1_value != rs2_value);
       BLT: branch_taken_next = ($signed(rs1_value) < $signed(rs2_value));
@@ -79,26 +79,26 @@ module stage3_execute (
       BGEU: branch_taken_next = (rs1_value >= rs2_value);
       default: branch_taken_next = 0;
     endcase
-    branch_target_next = program_counter + (REGISTER_WIDTH'(decoded_instruction.instr.b_type.immediate) << 1);
+    branch_target_next = program_counter + (REGISTER_WIDTH'(decoded_instruction.immediate.b_type) << 1);
   endtask
 
   task handle_jalr();
     branch_taken_next  = 1;
-    branch_target_next = rs1_value + REGISTER_WIDTH'(decoded_instruction.instr.i_type.immediate);
+    branch_target_next = rs1_value + REGISTER_WIDTH'(decoded_instruction.immediate.i_type);
   endtask
 
   task handle_jal();
     branch_taken_next = 1;
     branch_target_next = program_counter +
-        (REGISTER_WIDTH'($signed(decoded_instruction.instr.j_type.immediate)) << 1);
+        (REGISTER_WIDTH'($signed(decoded_instruction.immediate.j_type)) << 1);
   endtask
 
   task handle_load();
-    load_address = rs1_value + REGISTER_WIDTH'(decoded_instruction.instr.i_type.immediate);
+    load_address = rs1_value + REGISTER_WIDTH'(decoded_instruction.immediate.i_type);
   endtask
 
   task handle_store();
-    store_address = rs1_value + REGISTER_WIDTH'(decoded_instruction.instr.s_type.immediate);
+    store_address = rs1_value + REGISTER_WIDTH'(decoded_instruction.immediate.s_type);
     store_data = rs2_value;
   endtask
 

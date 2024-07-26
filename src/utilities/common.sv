@@ -95,35 +95,13 @@ package common;
     logic [4:0]  rd;
   } i_type_t;
 
-
-  typedef struct packed {
-    logic [11:0] immediate;
-    logic [4:0]  rs2;
-    logic [4:0]  rs1;
-    STypeFunct3  funct3;
-  } s_type_t;
-
-
-  typedef struct packed {
-    logic [11:0] immediate;
-    logic [4:0]  rs2;
-    logic [4:0]  rs1;
-    BTypeFunct3  funct3;
-  } b_type_t;
-
-  typedef struct packed {
-    logic [19:0] immediate;
-    logic [4:0]  rd;
-  } j_type_t;
-
-
   typedef struct packed {
     logic [6:0] immediate_11_5;
     logic [4:0] rs2;
     logic [4:0] rs1;
     STypeFunct3 funct3;
     logic [4:0] immediate_4_0;
-  } s_type_undecoded_t;
+  } s_type_t;
 
 
   typedef struct packed {
@@ -134,7 +112,7 @@ package common;
     BTypeFunct3   funct3;
     logic [4:1]   immediate_4_1;
     logic [11:11] immediate_11;
-  } b_type_undecoded_t;
+  } b_type_t;
 
   typedef struct packed {
     logic [20:20] immediate_20;
@@ -142,19 +120,7 @@ package common;
     logic [11:11] immediate_11;
     logic [19:12] immediate_19_12;
     logic [4:0]   rd;
-  } j_type_undecoded_t;
-
-  typedef struct packed {
-    union packed {
-      r_type_t r_type;
-      i_type_t i_type;
-      s_type_undecoded_t s_type;
-      b_type_undecoded_t b_type;
-      j_type_undecoded_t j_type;
-    } instr;
-    OpCode opcode;
-  } instruction_undecoded_t;
-
+  } j_type_t;
 
   typedef struct packed {
     union packed {
@@ -164,6 +130,28 @@ package common;
       b_type_t b_type;
       j_type_t j_type;
     } instr;
+    OpCode opcode;
+  } instruction_undecoded_t;
+
+
+  typedef struct packed {
+    union packed {
+      logic [11:0]  i_type;
+      logic [11:0]  s_type;
+      logic [12:1]  b_type;
+      logic [31:12] u_type;
+      logic [19:0]  j_type;
+    } immediate;
+    logic [6:0] funct7;
+    logic [4:0] rs2;
+    logic [4:0] rs1;
+    union packed {
+      RTypeFunct3 r_type;
+      ITypeFunct3 i_type;
+      STypeFunct3 s_type;
+      BTypeFunct3 b_type;
+    } funct3;
+    logic [4:0] rd;
     OpCode opcode;
   } instruction_t;
 

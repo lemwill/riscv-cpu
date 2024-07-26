@@ -19,7 +19,7 @@ module forwarding_unit (
           axis_decode_to_execute.tdata.decoded_instruction.opcode == OP_STORE || 
           axis_decode_to_execute.tdata.decoded_instruction.opcode == OP_BRANCH || 
           axis_decode_to_execute.tdata.decoded_instruction.opcode == OP_JALR) begin
-        if (axis_decode_to_execute.tdata.decoded_instruction.instr.i_type.rs1 == axis_execute_to_memory.tdata.decoded_instruction.instr.r_type.rd) begin
+        if (axis_decode_to_execute.tdata.decoded_instruction.rs1 == axis_execute_to_memory.tdata.decoded_instruction.rd) begin
           rs1_value = axis_execute_to_memory.tdata.alu_result;
         end
       end
@@ -27,7 +27,7 @@ module forwarding_unit (
       if (axis_decode_to_execute.tdata.decoded_instruction.opcode == OP_ARITHMETIC ||
           axis_decode_to_execute.tdata.decoded_instruction.opcode == OP_STORE || 
           axis_decode_to_execute.tdata.decoded_instruction.opcode == OP_BRANCH) begin
-        if (axis_decode_to_execute.tdata.decoded_instruction.instr.r_type.rs2 == axis_execute_to_memory.tdata.decoded_instruction.instr.r_type.rd) begin
+        if (axis_decode_to_execute.tdata.decoded_instruction.rs2 == axis_execute_to_memory.tdata.decoded_instruction.rd) begin
           rs2_value = axis_execute_to_memory.tdata.alu_result;
         end
       end
@@ -41,7 +41,7 @@ module forwarding_unit (
           axis_decode_to_execute.tdata.decoded_instruction.opcode == OP_STORE || 
           axis_decode_to_execute.tdata.decoded_instruction.opcode == OP_BRANCH || 
           axis_decode_to_execute.tdata.decoded_instruction.opcode == OP_JALR) begin
-        if (axis_decode_to_execute.tdata.decoded_instruction.instr.i_type.rs1 == axis_memory_to_writeback.tdata.decoded_instruction.instr.r_type.rd) begin
+        if (axis_decode_to_execute.tdata.decoded_instruction.rs1 == axis_memory_to_writeback.tdata.decoded_instruction.rd) begin
           rs1_value = axis_memory_to_writeback.tdata.alu_result;
         end
       end
@@ -49,7 +49,7 @@ module forwarding_unit (
       if (axis_decode_to_execute.tdata.decoded_instruction.opcode == OP_ARITHMETIC ||
           axis_decode_to_execute.tdata.decoded_instruction.opcode == OP_STORE || 
           axis_decode_to_execute.tdata.decoded_instruction.opcode == OP_BRANCH) begin
-        if (axis_decode_to_execute.tdata.decoded_instruction.instr.r_type.rs2 == axis_memory_to_writeback.tdata.decoded_instruction.instr.r_type.rd) begin
+        if (axis_decode_to_execute.tdata.decoded_instruction.rs2 == axis_memory_to_writeback.tdata.decoded_instruction.rd) begin
           rs2_value = axis_memory_to_writeback.tdata.alu_result;
         end
       end
