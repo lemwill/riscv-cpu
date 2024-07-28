@@ -24,6 +24,15 @@ module cpu (
   RegisterValue rs1_value;
   RegisterValue rs2_value;
 
+  pipeline_logger i_pipeline_logger (
+      .clk,
+      .rst,
+      .axis_fetch_to_decode,
+      .axis_decode_to_execute,
+      .axis_execute_to_memory,
+      .axis_memory_to_writeback,
+      .sramport_data
+  );
 
   instructioncache #(
       .DEPTH(10000),

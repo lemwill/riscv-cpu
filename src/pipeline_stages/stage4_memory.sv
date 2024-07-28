@@ -49,6 +49,7 @@ module stage4_memory (
 
   always_ff @(posedge clk) begin
     if (rst) begin
+      axis_memory_to_writeback.tvalid <= 0;
     end else begin
       axis_memory_to_writeback.tvalid <= 0;
       if (axis_execute_to_memory.tvalid) begin

@@ -49,6 +49,7 @@ def test_dff_verilog():
             os.path.join(src_dir, "utilities/memory_interface.sv"),
             os.path.join(src_dir, "utilities/axi_stream.sv"),
             os.path.join(src_dir, "utilities/registers.sv"),
+            os.path.join(src_dir, "utilities/pipeline_logger.sv"),
             os.path.join(src_dir, "utilities/sram.sv"),
             os.path.join(src_dir, "pipeline_stages/stage1_fetch.sv"),
             os.path.join(src_dir, "pipeline_stages/stage2_decode.sv"),

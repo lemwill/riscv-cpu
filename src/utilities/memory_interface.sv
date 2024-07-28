@@ -7,7 +7,7 @@ interface MemoryInterface #(
 
   // Signal Declarations
   data_type                    data;  // Data bus
-  logic     [ADDR_WIDTH-1:0]   address;  // Address bus
+  logic     [  ADDR_WIDTH-1:0] address;  // Address bus
   logic     [DATA_WIDTH/8-1:0] byte_enable;  // Address bus
   logic                        enable;  // Enable signal
 
@@ -22,7 +22,7 @@ interface MemoryInterface #(
   modport read_out(
       input data,  // Slave reads data
       output address,  // Slave receives address
-      output enable, // Slave receives enable signal
+      output enable,  // Slave receives enable signal
       output byte_enable
   );
 
@@ -36,7 +36,7 @@ interface MemoryInterface #(
   modport read_in(
       output data,  // Slave reads data
       input address,  // Slave receives address
-      input enable, // Slave receives enable signal
+      input enable,  // Slave receives enable signal
       input byte_enable
   );
 
@@ -50,15 +50,15 @@ interface MemoryInterfaceSinglePort #(
   localparam DATA_WIDTH = $bits(data_type);
 
   // Signal Declarations
-  data_type                    read_data;     // Data bus
-  data_type                    write_data;    // Data bus
-  logic     [ADDR_WIDTH-1:0]   address;       // Address bus
+  data_type                    read_data;  // Data bus
+  data_type                    write_data;  // Data bus
+  logic     [  ADDR_WIDTH-1:0] address;  // Address bus
   logic                        write_enable;  // Enable signal
-  logic     [DATA_WIDTH/8-1:0] byte_enable;   // Address bus
-  logic     [DATA_WIDTH/8-1:0] enable;   // Address bus
+  logic     [DATA_WIDTH/8-1:0] byte_enable;  // Address bus
+  logic     [DATA_WIDTH/8-1:0] enable;  // Address bus
 
 
-  modport master (
+  modport master(
       input read_data,  // Master writes data
       output write_data,  // Master writes data
       output address,  // Master provides address
@@ -67,15 +67,23 @@ interface MemoryInterfaceSinglePort #(
       output byte_enable
   );
 
-  modport slave (
+  modport slave(
       output read_data,  // Slave reads data
       input write_data,  // Slave reads data
       input address,  // Master provides address
-      input write_enable, // Slave receives enable signal
-      input enable, // Slave receives enable signal
+      input write_enable,  // Slave receives enable signal
+      input enable,  // Slave receives enable signal
       input byte_enable
   );
 
+  modport monitor(
+      input read_data,  // Slave reads data
+      input write_data,  // Slave reads data
+      input address,  // Master provides address
+      input write_enable,  // Slave receives enable signal
+      input enable,  // Slave receives enable signal
+      input byte_enable
+  );
 
 endinterface
 

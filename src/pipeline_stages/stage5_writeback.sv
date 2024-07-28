@@ -69,6 +69,7 @@ module stage5_writeback (
     endcase
   end
 
+  assign axis_memory_to_writeback.tready = 1'b1;
   assign registerport_write.data = write_data;
   assign registerport_write.address = write_address;
   assign registerport_write.enable = write_enable;
