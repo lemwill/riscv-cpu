@@ -24,6 +24,11 @@ module pipeline_logger #(
   color_t instruction_colors[0:NUM_COLORS-1];
 
   integer log_file;
+  string fetch_buffer = "";
+  string decode_buffer = "";
+  string execute_buffer = "";
+  string memory_buffer = "";
+  string writeback_buffer = "";
 
   localparam int FETCH_WIDTH = 15;
   localparam int DECODE_WIDTH = 40;
@@ -50,126 +55,7 @@ module pipeline_logger #(
             "EXECUTE", "MEMORY", "WRITEBACK");
   end
 
-  function string get_instruction_description(common::instruction_t instruction);
-    case (instruction.opcode)
-      common::OP_LUI:
-      return $sformatf("LUI x%0d=0x%0h", instruction.rd, instruction.immediate.u_type);
-      common::OP_AUIPC:
-      return $sformatf("AUIPC x%0d=PC+0x%0h", instruction.rd, instruction.immediate.u_type);
-      common::OP_JAL:
-      return $sformatf("JAL x%0d=PC+4;PC=PC+0x%0h", instruction.rd, instruction.immediate.j_type);
-      common::OP_JALR:
-      return $sformatf(
-          "JALR x%0d=PC+4;PC=(x%0d+0x%0h)&~1",
-          instruction.rd,
-          instruction.rs1,
-          instruction.immediate.i_type
-      );
-      common::OP_BRANCH:
-      return $sformatf(
-          "BRANCH if (x%0d%sx%0d) PC=PC+0x%0h",
-          instruction.rs1,
-          branch_op(
-              instruction.funct3.b_type
-          ),
-          instruction.rs2,
-          instruction.immediate.b_type
-      );
-      common::OP_LOAD:
-      return $sformatf(
-          "LOAD x%0d=Mem[x%0d+0x%0h]", instruction.rd, instruction.rs1, instruction.immediate.i_type
-      );
-      common::OP_STORE:
-      return $sformatf(
-          "STORE Mem[x%0d+0x%0h]=x%0d",
-          instruction.rs1,
-          instruction.immediate.s_type,
-          instruction.rs2
-      );
-      common::OP_ARITHMETIC_IMMEDIATE:
-      return arithmetic_imm_desc(
-          instruction.funct3.i_type, instruction.rd, instruction.rs1, instruction.immediate.i_type
-      );
-      common::OP_ARITHMETIC:
-      return arithmetic_desc(
-          instruction.funct3.r_type,
-          instruction.rd,
-          instruction.rs1,
-          instruction.rs2,
-          instruction.funct7
-      );
-      default: return "UNKNOWN";
-    endcase
-  endfunction
-
-  function string branch_op(common::BTypeFunct3 funct3);
-    case (funct3)
-      common::BEQ: return "==";
-      common::BNE: return "!=";
-      common::BLT: return "<";
-      common::BGE: return ">=";
-      common::BLTU: return "<u";
-      common::BGEU: return ">=u";
-      default: return "??";
-    endcase
-  endfunction
-
-  function string arithmetic_imm_desc(common::ITypeFunct3 funct3, logic [4:0] rd, logic [4:0] rs1,
-                                      logic [11:0] imm);
-    case (funct3)
-      common::ADDI_OR_JAL: return $sformatf("ADDI x%0d=x%0d+%0d", rd, rs1, imm);
-      common::XORI: return $sformatf("XORI x%0d=x%0d^%0d", rd, rs1, imm);
-      common::ORI: return $sformatf("ORI x%0d=x%0d|%0d", rd, rs1, imm);
-      common::ANDI: return $sformatf("ANDI x%0d=x%0d&%0d", rd, rs1, imm);
-      common::SLLI: return $sformatf("SLLI x%0d=x%0d<<%0d", rd, rs1, imm[4:0]);
-      common::SRLI_OR_SRAI: return $sformatf("SRLI x%0d=x%0d>>%0d", rd, rs1, imm[4:0]);
-      common::SLTI: return $sformatf("SLTI x%0d=(x%0d<%0d)?1:0", rd, rs1, imm);
-      common::SLTUI: return $sformatf("SLTUI x%0d=(x%0d<u%0d)?1:0", rd, rs1, imm);
-      default: return "UNKNOWN";
-    endcase
-  endfunction
-
-  function string arithmetic_desc(common::RTypeFunct3 funct3, logic [4:0] rd, logic [4:0] rs1,
-                                  logic [4:0] rs2, logic [6:0] funct7);
-    case (funct3)
-      common::ADD_OR_SUB:
-      return funct7[5] ? $sformatf(
-          "SUB x%0d=x%0d-x%0d", rd, rs1, rs2
-      ) : $sformatf(
-          "ADD x%0d=x%0d+x%0d", rd, rs1, rs2
-      );
-      common::XOR: return $sformatf("XOR x%0d=x%0d^x%0d", rd, rs1, rs2);
-      common::OR: return $sformatf("OR x%0d=x%0d|x%0d", rd, rs1, rs2);
-      common::AND: return $sformatf("AND x%0d=x%0d&x%0d", rd, rs1, rs2);
-      common::SLL: return $sformatf("SLL x%0d=x%0d<<x%0d", rd, rs1, rs2);
-      common::SRL_OR_SRA:
-      return funct7[5] ? $sformatf(
-          "SRA x%0d=x%0d>>x%0d", rd, rs1, rs2
-      ) : $sformatf(
-          "SRL x%0d=x%0d>>x%0d", rd, rs1, rs2
-      );
-      common::SLT: return $sformatf("SLT x%0d=(x%0d<x%0d)?1:0", rd, rs1, rs2);
-      common::SLTU: return $sformatf("SLTU x%0d=(x%0d<u x%0d)?1:0", rd, rs1, rs2);
-      default: return "UNKNOWN";
-    endcase
-  endfunction
-
-  function string pad_string(string str, int width);
-    string padded_str;
-    if (str.len() < width) begin
-      padded_str = {str, {" ", width - str.len()}};
-    end else begin
-      padded_str = str.substr(0, width - 1);
-    end
-    return padded_str;
-  endfunction
-
-  string fetch_buffer;
-  string decode_buffer;
-  string execute_buffer;
-  string memory_buffer;
-  string writeback_buffer;
-  int cycle_count;
+  // Reusing existing functions and variables
 
   always_ff @(posedge clk or posedge rst) begin
     if (rst) begin
@@ -200,8 +86,13 @@ module pipeline_logger #(
 
       // Decode stage
       if (axis_decode_to_execute.tvalid && axis_decode_to_execute.tready) begin
-        decode_buffer =
-            get_instruction_description(axis_decode_to_execute.tdata.decoded_instruction);
+        decode_buffer = $sformatf(
+            "OPCODE:%0d, %s",
+            axis_decode_to_execute.tdata.decoded_instruction.opcode,
+            get_instruction_description(
+              axis_decode_to_execute.tdata.decoded_instruction
+            )
+        );
       end else begin
         decode_buffer = "...";
       end
@@ -209,10 +100,8 @@ module pipeline_logger #(
       // Execute stage
       if (axis_execute_to_memory.tvalid && axis_execute_to_memory.tready) begin
         execute_buffer = $sformatf(
-            "%s,Res:%h",
-            get_instruction_description(
-              axis_execute_to_memory.tdata.decoded_instruction
-            ),
+            "OPCODE:%0d, Res:%h",
+            axis_execute_to_memory.tdata.decoded_instruction.opcode,
             axis_execute_to_memory.tdata.alu_result
         );
       end else begin
@@ -221,27 +110,24 @@ module pipeline_logger #(
 
       // Memory stage
       if (axis_memory_to_writeback.tvalid && axis_memory_to_writeback.tready) begin
-        memory_buffer =
-            get_instruction_description(axis_memory_to_writeback.tdata.decoded_instruction);
-        if (axis_memory_to_writeback.tdata.decoded_instruction.opcode == common::OP_LOAD) begin
-          memory_buffer =
-              $sformatf("LOAD Addr:%0h,Data:%0d", sramport_data.address, sramport_data.read_data);
-        end else if (axis_memory_to_writeback.tdata.decoded_instruction.opcode == common::OP_STORE) begin
-          memory_buffer =
-              $sformatf("STORE mem[%0h]=%0d", sramport_data.address, sramport_data.write_data);
-        end
+        memory_buffer = $sformatf(
+            "OPCODE:%0d, Addr:%0h, R/W Data:%0d",
+            axis_memory_to_writeback.tdata.decoded_instruction.opcode,
+            sramport_data.address,
+            axis_memory_to_writeback.tdata.decoded_instruction.opcode == common::OP_STORE ? sramport_data.write_data : sramport_data.read_data
+        );
       end else begin
         memory_buffer = "...";
       end
 
       // Writeback stage
       if (axis_memory_to_writeback.tvalid && axis_memory_to_writeback.tready) begin
-        writeback_buffer =
-            get_instruction_description(axis_memory_to_writeback.tdata.decoded_instruction);
-        if (axis_memory_to_writeback.tdata.decoded_instruction.opcode == common::OP_LOAD || axis_memory_to_writeback.tdata.decoded_instruction.opcode == common::OP_ARITHMETIC_IMMEDIATE || axis_memory_to_writeback.tdata.decoded_instruction.opcode == common::OP_ARITHMETIC) begin
-          writeback_buffer =
-              $sformatf("%s,Data:%h", writeback_buffer, axis_memory_to_writeback.tdata.alu_result);
-        end
+        writeback_buffer = $sformatf(
+            "OPCODE:%0d, Reg:%0d, Data:%h",
+            axis_memory_to_writeback.tdata.decoded_instruction.opcode,
+            axis_memory_to_writeback.tdata.decoded_instruction.rd,
+            axis_memory_to_writeback.tdata.alu_result
+        );
       end else begin
         writeback_buffer = "...";
       end
