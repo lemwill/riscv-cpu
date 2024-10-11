@@ -36,6 +36,8 @@ module pipeline_logger #(
   localparam int MEMORY_WIDTH = 40;
   localparam int WRITEBACK_WIDTH = 40;
 
+  int cycle_count;
+
   initial begin
     instruction_colors[0] = COLOR_RED;
     instruction_colors[1] = COLOR_GREEN;
@@ -55,7 +57,208 @@ module pipeline_logger #(
             "EXECUTE", "MEMORY", "WRITEBACK");
   end
 
-  // Reusing existing functions and variables
+  // Function to retrieve the instruction name (mnemonic)
+  function string get_instruction_name(common::instruction_t instruction);
+    case (instruction.opcode)
+      common::OP_LUI: return "LUI";
+      common::OP_AUIPC: return "AUIPC";
+      common::OP_JAL: return "JAL";
+      common::OP_JALR: return "JALR";
+      common::OP_BRANCH: return "BRANCH";
+      common::OP_LOAD: return "LOAD";
+      common::OP_STORE: return "STORE";
+      common::OP_ARITHMETIC_IMMEDIATE: return "ARITH_IMM";
+      common::OP_ARITHMETIC: return "ARITH";
+      default: return "UNKNOWN";
+    endcase
+  endfunction
+
+  // Function to retrieve the instruction subname based on opcode and funct fields
+  function string get_instruction_subname(common::instruction_t instruction);
+    string name;
+    name = get_instruction_name(instruction);
+    case (instruction.opcode)
+      common::OP_BRANCH: begin
+        case (instruction.funct3.b_type)
+          common::BEQ:  return "BEQ";
+          common::BNE:  return "BNE";
+          common::BLT:  return "BLT";
+          common::BGE:  return "BGE";
+          common::BLTU: return "BLTU";
+          common::BGEU: return "BGEU";
+          default:      return "BR_UNKNOWN";
+        endcase
+      end
+      common::OP_ARITHMETIC_IMMEDIATE: begin
+        case (instruction.funct3.i_type)
+          common::ADDI_OR_JAL:  return "ADDI";
+          common::XORI:         return "XORI";
+          common::ORI:          return "ORI";
+          common::ANDI:         return "ANDI";
+          common::SLLI:         return "SLLI";
+          common::SRLI_OR_SRAI: return "SRLI/SRAI";
+          common::SLTI:         return "SLTI";
+          common::SLTUI:        return "SLTUI";
+          default:              return {"ARITH_IMM_UNKNOWN: ", get_instruction_name(instruction)};
+        endcase
+      end
+      common::OP_ARITHMETIC: begin
+        case (instruction.funct3.r_type)
+          common::ADD_OR_SUB: begin
+            if (instruction.funct7[5]) return "SUB";
+            else return "ADD";
+          end
+          common::XOR:  return "XOR";
+          common::OR:   return "OR";
+          common::AND:  return "AND";
+          common::SLL:  return "SLL";
+          common::SRL_OR_SRA: begin
+            if (instruction.funct7[5]) return "SRA";
+            else return "SRL";
+          end
+          common::SLT:  return "SLT";
+          common::SLTU: return "SLTU";
+          default:      return {"ARITH_UNKNOWN: ", get_instruction_name(instruction)};
+        endcase
+      end
+      default: return name;  // Return the instruction name if no subname is applicable
+    endcase
+  endfunction
+
+  // Updated function to get detailed instruction description
+  function string get_instruction_description(common::instruction_t instruction);
+    string name, subname;
+    name = get_instruction_name(instruction);
+    subname = get_instruction_subname(instruction);
+    case (instruction.opcode)
+      common::OP_LUI:
+      return $sformatf("LUI   x%0d=0x%0h", instruction.rd, instruction.immediate.u_type);
+      common::OP_AUIPC:
+      return $sformatf("AUIPC x%0d=PC+0x%0h", instruction.rd, instruction.immediate.u_type);
+      common::OP_JAL:
+      return $sformatf(
+          "JAL   x%0d=PC+4; PC=PC+0x%0h", instruction.rd, instruction.immediate.j_type
+      );
+      common::OP_JALR:
+      return $sformatf(
+          "JALR  x%0d=PC+4; PC=(x%0d + 0x%0h) & ~1",
+          instruction.rd,
+          instruction.rs1,
+          instruction.immediate.i_type
+      );
+      common::OP_BRANCH:
+      return $sformatf(
+          "%s if (x%0d %s x%0d) PC=PC+0x%0h",
+          subname,  // Using subname instead of generic "BRANCH"
+          instruction.rs1,
+          branch_op(
+              instruction.funct3.b_type
+          ),
+          instruction.rs2,
+          instruction.immediate.b_type
+      );
+      common::OP_LOAD:
+      return $sformatf(
+          "LOAD  x%0d=Mem[x%0d + 0x%0h]",
+          instruction.rd,
+          instruction.rs1,
+          instruction.immediate.i_type
+      );
+      common::OP_STORE:
+      return $sformatf(
+          "STORE Mem[x%0d + 0x%0h] = x%0d",
+          instruction.rs1,
+          instruction.immediate.s_type,
+          instruction.rs2
+      );
+      common::OP_ARITHMETIC_IMMEDIATE:
+      return $sformatf(
+          "%s x%0d = x%0d %s %0d",
+          subname,  // e.g., "ADDI"
+          instruction.rd,
+          instruction.rs1,
+          (subname == "ADDI" || subname == "XORI" || subname == "ORI" || subname == "ANDI" ||
+           subname == "SLLI" || subname == "SRLI/SRAI" || subname == "SLTI" || subname == "SLTUI") ? 
+             (subname == "SRLI/SRAI" ? ">>" : 
+              (subname == "SLLI" ? "<<" : 
+               (subname == "ADDI" || subname == "SLTI" || subname == "SLTUI") ? "+" :
+               (subname == "XORI" ? "^" :
+                (subname == "ORI" ? "|" : 
+                 (subname == "ANDI" ? "&" : "?"))))) : "?",
+          instruction.immediate.i_type
+      );
+      common::OP_ARITHMETIC:
+      return $sformatf(
+          "%s x%0d = x%0d %s x%0d",
+          subname,  // e.g., "ADD", "SUB"
+          instruction.rd,
+          instruction.rs1,
+          (subname == "ADD" || subname == "SUB") ? "+" :
+          (subname == "XOR" ? "^" :
+           (subname == "OR" ? "|" :
+            (subname == "AND" ? "&" :
+             (subname == "SLL" ? "<<" :
+              (subname == "SRL" ? ">>" :
+               (subname == "SRA" ? ">>>" :
+                (subname == "SLT" ? "<" :
+                 (subname == "SLTU" ? "<u" : "?")))))))), // Define operators based on subname
+          instruction.rs2
+      );
+      default: return $sformatf("%s", name);
+    endcase
+  endfunction
+
+  function string branch_op(common::BTypeFunct3 funct3);
+    case (funct3)
+      common::BEQ:  return "==";
+      common::BNE:  return "!=";
+      common::BLT:  return "<";
+      common::BGE:  return ">=";
+      common::BLTU: return "<u";
+      common::BGEU: return ">=u";
+      default:      return "??";
+    endcase
+  endfunction
+
+  function string arithmetic_imm_desc(common::ITypeFunct3 funct3, logic [4:0] rd, logic [4:0] rs1,
+                                      logic [11:0] imm);
+    case (funct3)
+      common::ADDI_OR_JAL:  return $sformatf("ADDI  x%0d = x%0d + %0d", rd, rs1, imm);
+      common::XORI:         return $sformatf("XORI  x%0d = x%0d ^ %0d", rd, rs1, imm);
+      common::ORI:          return $sformatf("ORI   x%0d = x%0d | %0d", rd, rs1, imm);
+      common::ANDI:         return $sformatf("ANDI  x%0d = x%0d & %0d", rd, rs1, imm);
+      common::SLLI:         return $sformatf("SLLI  x%0d = x%0d << %0d", rd, rs1, imm[4:0]);
+      common::SRLI_OR_SRAI: return $sformatf("SRLI/SRAI x%0d = x%0d >> %0d", rd, rs1, imm[4:0]);
+      common::SLTI:         return $sformatf("SLTI  x%0d = (x%0d < %0d) ? 1 : 0", rd, rs1, imm);
+      common::SLTUI:        return $sformatf("SLTUI x%0d = (x%0d <u %0d) ? 1 : 0", rd, rs1, imm);
+      default:              return "UNKNOWN";
+    endcase
+  endfunction
+
+  function string arithmetic_desc(common::RTypeFunct3 funct3, logic [4:0] rd, logic [4:0] rs1,
+                                  logic [4:0] rs2, logic [6:0] funct7);
+    string subname;
+    // Determine subname based on funct3 and funct7
+    case (funct3)
+      common::ADD_OR_SUB: begin
+        if (funct7[5]) subname = "SUB";
+        else subname = "ADD";
+        return $sformatf("%s x%0d = x%0d + x%0d", subname, rd, rs1, rs2);
+      end
+      common::XOR:  return $sformatf("XOR  x%0d = x%0d ^ x%0d", rd, rs1, rs2);
+      common::OR:   return $sformatf("OR   x%0d = x%0d | x%0d", rd, rs1, rs2);
+      common::AND:  return $sformatf("AND  x%0d = x%0d & x%0d", rd, rs1, rs2);
+      common::SLL:  return $sformatf("SLL  x%0d = x%0d << x%0d", rd, rs1, rs2);
+      common::SRL_OR_SRA: begin
+        if (funct7[5]) subname = "SRA";
+        else subname = "SRL";
+        return $sformatf("%s  x%0d = x%0d >> x%0d", subname, rd, rs1, rs2);
+      end
+      common::SLT:  return $sformatf("SLT  x%0d = (x%0d < x%0d) ? 1 : 0", rd, rs1, rs2);
+      common::SLTU: return $sformatf("SLTU x%0d = (x%0d <u x%0d) ? 1 : 0", rd, rs1, rs2);
+      default:      return "UNKNOWN";
+    endcase
+  endfunction
 
   always_ff @(posedge clk or posedge rst) begin
     if (rst) begin
@@ -87,12 +290,7 @@ module pipeline_logger #(
       // Decode stage
       if (axis_decode_to_execute.tvalid && axis_decode_to_execute.tready) begin
         decode_buffer = $sformatf(
-            "OPCODE:%0d, %s",
-            axis_decode_to_execute.tdata.decoded_instruction.opcode,
-            get_instruction_description(
-              axis_decode_to_execute.tdata.decoded_instruction
-            )
-        );
+            "%s", get_instruction_description(axis_decode_to_execute.tdata.decoded_instruction));
       end else begin
         decode_buffer = "...";
       end
@@ -100,8 +298,10 @@ module pipeline_logger #(
       // Execute stage
       if (axis_execute_to_memory.tvalid && axis_execute_to_memory.tready) begin
         execute_buffer = $sformatf(
-            "OPCODE:%0d, Res:%h",
-            axis_execute_to_memory.tdata.decoded_instruction.opcode,
+            "%s = %0d",
+            get_instruction_description(
+              axis_execute_to_memory.tdata.decoded_instruction
+            ),
             axis_execute_to_memory.tdata.alu_result
         );
       end else begin
@@ -110,24 +310,36 @@ module pipeline_logger #(
 
       // Memory stage
       if (axis_memory_to_writeback.tvalid && axis_memory_to_writeback.tready) begin
-        memory_buffer = $sformatf(
-            "OPCODE:%0d, Addr:%0h, R/W Data:%0d",
-            axis_memory_to_writeback.tdata.decoded_instruction.opcode,
-            sramport_data.address,
-            axis_memory_to_writeback.tdata.decoded_instruction.opcode == common::OP_STORE ? sramport_data.write_data : sramport_data.read_data
+        // Determine if the instruction is a memory read (LOAD) or write (STORE)
+        string mem_subname = get_instruction_subname(
+            axis_memory_to_writeback.tdata.decoded_instruction
         );
+        string opcode = get_instruction_description(
+            axis_memory_to_writeback.tdata.decoded_instruction
+        );
+        if (axis_memory_to_writeback.tdata.decoded_instruction.opcode == common::OP_LOAD ||
+            axis_memory_to_writeback.tdata.decoded_instruction.opcode == common::OP_STORE) begin
+          memory_buffer = $sformatf(
+              "%s, Addr:0x%0h, Data:0x%0h",
+              mem_subname,  // e.g., "LOAD" or "STORE"
+              sramport_data.address,
+              (axis_memory_to_writeback.tdata.decoded_instruction.opcode == common::OP_STORE) 
+                  ? sramport_data.write_data 
+                  : sramport_data.read_data
+          );
+        end else begin
+          // For non-memory operations, only display the opcode
+          memory_buffer = opcode;
+        end
       end else begin
         memory_buffer = "...";
       end
 
       // Writeback stage
-      if (axis_memory_to_writeback.tvalid && axis_memory_to_writeback.tready) begin
-        writeback_buffer = $sformatf(
-            "OPCODE:%0d, Reg:%0d, Data:%h",
-            axis_memory_to_writeback.tdata.decoded_instruction.opcode,
-            axis_memory_to_writeback.tdata.decoded_instruction.rd,
-            axis_memory_to_writeback.tdata.alu_result
-        );
+      // Assuming 'registerport_write' is connected or defined elsewhere
+      if (registerport_write.enable) begin
+        writeback_buffer =
+            $sformatf("Reg:x%0d, Data:%h", registerport_write.address, registerport_write.data);
       end else begin
         writeback_buffer = "...";
       end

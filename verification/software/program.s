@@ -3,7 +3,7 @@
 _start:
     addi x1, x0, 10  # Set x1 to 10 (our comparison value)
     sw x1, 100(x0)     # Store the value of x1 at address 0
-    lw x3, 100(x0)     # Load the value at address 0 into x3
+    lw x1, 100(x0)     # Load the value at address 0 into x3
     jal zero, _start
 
 #_start:

@@ -57,16 +57,18 @@ module stage5_writeback (
     write_address = 0;
     write_enable = 0;
 
-    case (axis_memory_to_writeback.tdata.decoded_instruction.opcode)
-      OP_ARITHMETIC_IMMEDIATE, OP_JALR, OP_ARITHMETIC: handle_arithmetic_jalr();
-      OP_JAL: handle_jal();
-      OP_LOAD: handle_load();
-      default: begin
-        write_enable = 0;
-        write_data = 0;
-        write_address = 0;
-      end
-    endcase
+    if (axis_memory_to_writeback.tvalid) begin
+      case (axis_memory_to_writeback.tdata.decoded_instruction.opcode)
+        OP_ARITHMETIC_IMMEDIATE, OP_JALR, OP_ARITHMETIC: handle_arithmetic_jalr();
+        OP_JAL: handle_jal();
+        OP_LOAD: handle_load();
+        default: begin
+          write_enable = 0;
+          write_data = 0;
+          write_address = 0;
+        end
+      endcase
+    end
   end
 
   assign axis_memory_to_writeback.tready = 1'b1;
