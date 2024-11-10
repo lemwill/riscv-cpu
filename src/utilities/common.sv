@@ -182,7 +182,6 @@ package common;
     instruction_t decoded_instruction;
     logic [REGISTER_WIDTH-1:0] alu_result;
     logic [REGISTER_WIDTH-1:0] branch_target;
-    logic [REGISTER_WIDTH-1:0] data_from_memory;
   } memory_to_writeback_t;
 
   parameter MEM_ADDRESS_WIDTH = 32;

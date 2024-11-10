@@ -2,7 +2,8 @@ module stage5_writeback (
     input clk,
     input rst,
     Axis.in axis_memory_to_writeback,
-    MemoryInterface.write_out registerport_write
+    MemoryInterface.write_out registerport_write,
+    MemoryInterfaceSinglePort.master sramport_data
 );
 
   logic [REGISTER_WIDTH-1:0] write_data;
@@ -30,25 +31,21 @@ module stage5_writeback (
     case (axis_memory_to_writeback.tdata.decoded_instruction.funct3)
       LB:
       write_data = {
-        {(REGISTER_WIDTH - BYTE_WIDTH) {axis_memory_to_writeback.tdata.data_from_memory[BYTE_WIDTH-1]}},
-        axis_memory_to_writeback.tdata.data_from_memory[BYTE_WIDTH-1:0]
+        {(REGISTER_WIDTH - BYTE_WIDTH) {sramport_data.read_data[BYTE_WIDTH-1]}},
+        sramport_data.read_data[BYTE_WIDTH-1:0]
       };
       LH:
       write_data = {
-        {(REGISTER_WIDTH - 2 * BYTE_WIDTH) {axis_memory_to_writeback.tdata.data_from_memory[2*BYTE_WIDTH-1]}},
-        axis_memory_to_writeback.tdata.data_from_memory[2*BYTE_WIDTH-1:0]
+        {(REGISTER_WIDTH - 2 * BYTE_WIDTH) {sramport_data.read_data[2*BYTE_WIDTH-1]}},
+        sramport_data.read_data[2*BYTE_WIDTH-1:0]
       };
       LBU:
-      write_data = {
-        {REGISTER_WIDTH - BYTE_WIDTH{1'b0}},
-        axis_memory_to_writeback.tdata.data_from_memory[BYTE_WIDTH-1:0]
-      };
+      write_data = {{REGISTER_WIDTH - BYTE_WIDTH{1'b0}}, sramport_data.read_data[BYTE_WIDTH-1:0]};
       LHU:
       write_data = {
-        {REGISTER_WIDTH - 2 * BYTE_WIDTH{1'b0}},
-        axis_memory_to_writeback.tdata.data_from_memory[2*BYTE_WIDTH-1:0]
+        {REGISTER_WIDTH - 2 * BYTE_WIDTH{1'b0}}, sramport_data.read_data[2*BYTE_WIDTH-1:0]
       };
-      default: write_data = axis_memory_to_writeback.tdata.data_from_memory;
+      default: write_data = sramport_data.read_data;
     endcase
   endtask
 

@@ -102,7 +102,8 @@ module cpu (
       .clk,
       .rst,
       .axis_memory_to_writeback,
-      .registerport_write
+      .registerport_write,
+      .sramport_data
   );
 
   forwarding_unit i_forwarding_unit (

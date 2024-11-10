@@ -54,7 +54,6 @@ module stage4_memory (
       axis_memory_to_writeback.tvalid <= 0;
       if (axis_execute_to_memory.tvalid) begin
         axis_memory_to_writeback.tvalid <= 1;
-        axis_memory_to_writeback.tdata.data_from_memory <= sramport_data.read_data;
         axis_memory_to_writeback.tdata.branch_target <= axis_execute_to_memory.tdata.branch_target;
         axis_memory_to_writeback.tdata.alu_result <= axis_execute_to_memory.tdata.alu_result;
         axis_memory_to_writeback.tdata.decoded_instruction <= decoded_instruction;
