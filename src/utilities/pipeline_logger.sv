@@ -38,6 +38,9 @@ module pipeline_logger #(
 
   int cycle_count;
 
+  RegisterValue sramport_data_write_data_q;
+  logic [MEM_ADDRESS_WIDTH-1:0] sramport_data_address_q;
+
   initial begin
     instruction_colors[0] = COLOR_RED;
     instruction_colors[1] = COLOR_GREEN;
@@ -260,7 +263,7 @@ module pipeline_logger #(
     endcase
   endfunction
 
-  always_ff @(posedge clk or posedge rst) begin
+  always_ff @(posedge clk) begin
     if (rst) begin
       // Reset logic
       cycle_count = 0;
@@ -278,6 +281,8 @@ module pipeline_logger #(
       $fwrite(log_file, "%-6s %-15s %-40s %-40s %-40s %-40s\n", "Cycle", "FETCH", "DECODE",
               "EXECUTE", "MEMORY", "WRITEBACK");
     end else begin
+      sramport_data_write_data_q <= sramport_data.write_data;
+      sramport_data_address_q <= sramport_data.address;
       cycle_count++;
 
       // Fetch stage
@@ -322,9 +327,9 @@ module pipeline_logger #(
           memory_buffer = $sformatf(
               "%s, Addr:0x%0h, Data:0x%0h",
               mem_subname,  // e.g., "LOAD" or "STORE"
-              sramport_data.address,
+              sramport_data_address_q,
               (axis_memory_to_writeback.tdata.decoded_instruction.opcode == common::OP_STORE) 
-                  ? sramport_data.write_data 
+                  ? sramport_data_write_data_q 
                   : sramport_data.read_data
           );
         end else begin

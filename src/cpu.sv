@@ -12,7 +12,7 @@ module cpu (
   Axis #(execute_to_memory_t) axis_execute_to_memory ();
   Axis #(memory_to_writeback_t) axis_memory_to_writeback ();
 
-  MemoryInterfaceSinglePort #(logic [31:0], 32) sramport_data ();
+  MemoryInterfaceSinglePort #(logic [31:0], MEM_ADDRESS_WIDTH) sramport_data ();
   MemoryInterface #(logic [31:0], 32) sramport_instruction_read ();
   MemoryInterface #(logic [31:0], $clog2(REGISTER_DEPTH)) registerport_write ();
   MemoryInterface #(logic [31:0], $clog2(REGISTER_DEPTH)) registerport_read_1 ();
@@ -106,9 +106,12 @@ module cpu (
   );
 
   forwarding_unit i_forwarding_unit (
+      .clk,
+      .rst,
       .axis_decode_to_execute,
       .axis_execute_to_memory,
       .axis_memory_to_writeback,
+      .registerport_write,
       .rs1_value,
       .rs2_value
   );
