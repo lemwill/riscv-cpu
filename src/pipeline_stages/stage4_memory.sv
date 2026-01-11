@@ -21,9 +21,8 @@ module stage4_memory (
     sramport_data.byte_enable  = '1;
 
     if (decoded_instruction.opcode == OP_LOAD) begin
-      sramport_data.address = rs1_value +
-          REGISTER_WIDTH'($signed(decoded_instruction.immediate.i_type));
-      sramport_data.enable = 1;
+      sramport_data.address = rs1_value + decoded_instruction.immediate;
+      sramport_data.enable  = 1;
       case (decoded_instruction.funct3)
         LB: sramport_data.byte_enable = 4'b1;
         LH: sramport_data.byte_enable = 4'b11;
@@ -32,8 +31,7 @@ module stage4_memory (
         default: sramport_data.byte_enable = '1;
       endcase
     end else if (decoded_instruction.opcode == OP_STORE) begin
-      sramport_data.address = rs1_value +
-          REGISTER_WIDTH'($signed(decoded_instruction.immediate.s_type));
+      sramport_data.address = rs1_value + decoded_instruction.immediate;
       sramport_data.write_data = rs2_value;
       sramport_data.write_enable = 1;
       sramport_data.enable = 1;

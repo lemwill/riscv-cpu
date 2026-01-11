@@ -29,27 +29,15 @@ module stage5_writeback (
     write_address = axis_memory_to_writeback.tdata.decoded_instruction.rd;
     write_enable  = 1'b1;
     case (axis_memory_to_writeback.tdata.decoded_instruction.funct3)
-      LB:
-      write_data = {
-        {(REGISTER_WIDTH - BYTE_WIDTH) {sramport_data.read_data[BYTE_WIDTH-1]}},
-        sramport_data.read_data[BYTE_WIDTH-1:0]
-      };
-      LH:
-      write_data = {
-        {(REGISTER_WIDTH - 2 * BYTE_WIDTH) {sramport_data.read_data[2*BYTE_WIDTH-1]}},
-        sramport_data.read_data[2*BYTE_WIDTH-1:0]
-      };
-      LBU:
-      write_data = {{REGISTER_WIDTH - BYTE_WIDTH{1'b0}}, sramport_data.read_data[BYTE_WIDTH-1:0]};
-      LHU:
-      write_data = {
-        {REGISTER_WIDTH - 2 * BYTE_WIDTH{1'b0}}, sramport_data.read_data[2*BYTE_WIDTH-1:0]
-      };
+      LB: write_data = {{(REGISTER_WIDTH - BYTE_WIDTH) {sramport_data.read_data[BYTE_WIDTH-1]}}, sramport_data.read_data[BYTE_WIDTH-1:0]};
+      LH: write_data = {{(REGISTER_WIDTH - 2 * BYTE_WIDTH) {sramport_data.read_data[2*BYTE_WIDTH-1]}}, sramport_data.read_data[2*BYTE_WIDTH-1:0]};
+      LBU: write_data = {{REGISTER_WIDTH - BYTE_WIDTH{1'b0}}, sramport_data.read_data[BYTE_WIDTH-1:0]};
+      LHU: write_data = {{REGISTER_WIDTH - 2 * BYTE_WIDTH{1'b0}}, sramport_data.read_data[2*BYTE_WIDTH-1:0]};
       default: write_data = sramport_data.read_data;
     endcase
   endtask
 
-  always begin
+  always_comb begin
     write_data = 0;
     write_address = 0;
     write_enable = 0;

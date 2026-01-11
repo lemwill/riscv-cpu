@@ -12,6 +12,7 @@ src_dir = os.path.dirname(__file__) + "/../src"
 compile_args_value = [
     "--trace-fst",
     "--trace-structs",
+    "--public-flat-rw",
     # "-Wno-WIDTHTRUNC",
     # "-Wno-WIDTHEXPAND",
     "-output-split",
@@ -34,7 +35,7 @@ compile_args_value = [
     "-CFLAGS",
     "-O0",
     "--timescale",
-    "1ns/10ps"
+    "1ns/10ps",
 ]
 
 make_args_value = []
@@ -43,6 +44,9 @@ if platform.system() == "Darwin":  # Check if the OS is macOS
 
 
 def test_dff_verilog():
+    # Disable CocoTB profiling to avoid Python 3.9 compatibility issues
+    os.environ["COCOTB_ENABLE_PROFILING"] = "0"
+
     run(
         verilog_sources=[
             os.path.join(src_dir, "utilities/common.sv"),
@@ -59,7 +63,7 @@ def test_dff_verilog():
             os.path.join(src_dir, "pipeline_stages/instructioncache.sv"),
             os.path.join(src_dir, "pipeline_stages/datacache.sv"),
             os.path.join(src_dir, "pipeline_stages/forwarding_unit.sv"),
-            os.path.join(src_dir, "cpu.sv")
+            os.path.join(src_dir, "cpu.sv"),
         ],
         toplevel="cpu",
         module="tests.test_basic",

@@ -135,13 +135,7 @@ package common;
 
 
   typedef struct packed {
-    union packed {
-      logic [11:0]  i_type;
-      logic [11:0]  s_type;
-      logic [12:1]  b_type;
-      logic [31:12] u_type;
-      logic [19:0]  j_type;
-    } immediate;
+    logic [31:0] immediate;  // Sign-extended immediate value
     logic [6:0] funct7;
     logic [4:0] rs2;
     logic [4:0] rs1;

@@ -23,13 +23,14 @@ module stage2_decode #(
     case (undecoded_instruction.opcode)
       OP_ARITHMETIC_IMMEDIATE, OP_LOAD, OP_JALR: begin  // I-TYPE
         decoded_instruction.opcode = undecoded_instruction.opcode;
-        decoded_instruction.immediate.i_type = undecoded_instruction.instr.i_type.immediate;
+        decoded_instruction.immediate = {{20{undecoded_instruction.instr.i_type.immediate[11]}}, undecoded_instruction.instr.i_type.immediate};
         decoded_instruction.rs1 = undecoded_instruction.instr.i_type.rs1;
         decoded_instruction.funct3 = undecoded_instruction.instr.i_type.funct3;
         decoded_instruction.rd = undecoded_instruction.instr.i_type.rd;
       end
       OP_ARITHMETIC: begin  // R-TYPE
         decoded_instruction.opcode = undecoded_instruction.opcode;
+        decoded_instruction.immediate = 0;
         decoded_instruction.rd = undecoded_instruction.instr.r_type.rd;
         decoded_instruction.funct3 = undecoded_instruction.instr.r_type.funct3;
         decoded_instruction.rs1 = undecoded_instruction.instr.r_type.rs1;
@@ -38,11 +39,13 @@ module stage2_decode #(
       end
       OP_BRANCH: begin  // B-TYPE
         decoded_instruction.opcode = undecoded_instruction.opcode;
-        decoded_instruction.immediate.b_type = {
+        decoded_instruction.immediate = {
+          {19{undecoded_instruction.instr.b_type.immediate_12}},
           undecoded_instruction.instr.b_type.immediate_12,
           undecoded_instruction.instr.b_type.immediate_11,
           undecoded_instruction.instr.b_type.immediate_10_5,
-          undecoded_instruction.instr.b_type.immediate_4_1
+          undecoded_instruction.instr.b_type.immediate_4_1,
+          1'b0
         };
         decoded_instruction.rs2 = undecoded_instruction.instr.b_type.rs2;
         decoded_instruction.rs1 = undecoded_instruction.instr.b_type.rs1;
@@ -51,21 +54,20 @@ module stage2_decode #(
       end
       OP_JAL: begin  // J-TYPE
         decoded_instruction.opcode = undecoded_instruction.opcode;
-        decoded_instruction.immediate.j_type = {
+        decoded_instruction.immediate = {
+          {11{undecoded_instruction.instr.j_type.immediate_20}},
           undecoded_instruction.instr.j_type.immediate_20,
           undecoded_instruction.instr.j_type.immediate_19_12,
           undecoded_instruction.instr.j_type.immediate_11,
-          undecoded_instruction.instr.j_type.immediate_10_1
+          undecoded_instruction.instr.j_type.immediate_10_1,
+          1'b0
         };
         decoded_instruction.rd = undecoded_instruction.instr.j_type.rd;
       end
 
       OP_STORE: begin  // S-TYPE
         decoded_instruction.opcode = undecoded_instruction.opcode;
-        decoded_instruction.immediate.s_type = {
-          undecoded_instruction.instr.s_type.immediate_11_5,
-          undecoded_instruction.instr.s_type.immediate_4_0
-        };
+        decoded_instruction.immediate = {{20{undecoded_instruction.instr.s_type.immediate_11_5[6]}}, undecoded_instruction.instr.s_type.immediate_11_5, undecoded_instruction.instr.s_type.immediate_4_0};
         decoded_instruction.rs2 = undecoded_instruction.instr.s_type.rs2;
         decoded_instruction.rs1 = undecoded_instruction.instr.s_type.rs1;
         decoded_instruction.funct3 = undecoded_instruction.instr.s_type.funct3;

@@ -56,8 +56,7 @@ module pipeline_logger #(
       $fatal("Failed to open log file.");
     end
     // Print column headers
-    $fwrite(log_file, "%-6s %-15s %-40s %-40s %-40s %-40s\n", "Cycle", "FETCH", "DECODE",
-            "EXECUTE", "MEMORY", "WRITEBACK");
+    $fwrite(log_file, "%-6s %-15s %-40s %-40s %-40s %-40s\n", "Cycle", "FETCH", "DECODE", "EXECUTE", "MEMORY", "WRITEBACK");
   end
 
   // Function to retrieve the instruction name (mnemonic)
@@ -82,7 +81,7 @@ module pipeline_logger #(
     name = get_instruction_name(instruction);
     case (instruction.opcode)
       common::OP_BRANCH: begin
-        case (instruction.funct3.b_type)
+        case (instruction.funct3)
           common::BEQ:  return "BEQ";
           common::BNE:  return "BNE";
           common::BLT:  return "BLT";
@@ -134,21 +133,10 @@ module pipeline_logger #(
     name = get_instruction_name(instruction);
     subname = get_instruction_subname(instruction);
     case (instruction.opcode)
-      common::OP_LUI:
-      return $sformatf("LUI   x%0d=0x%0h", instruction.rd, instruction.immediate.u_type);
-      common::OP_AUIPC:
-      return $sformatf("AUIPC x%0d=PC+0x%0h", instruction.rd, instruction.immediate.u_type);
-      common::OP_JAL:
-      return $sformatf(
-          "JAL   x%0d=PC+4; PC=PC+0x%0h", instruction.rd, instruction.immediate.j_type
-      );
-      common::OP_JALR:
-      return $sformatf(
-          "JALR  x%0d=PC+4; PC=(x%0d + 0x%0h) & ~1",
-          instruction.rd,
-          instruction.rs1,
-          instruction.immediate.i_type
-      );
+      common::OP_LUI: return $sformatf("LUI   x%0d=0x%0h", instruction.rd, instruction.immediate);
+      common::OP_AUIPC: return $sformatf("AUIPC x%0d=PC+0x%0h", instruction.rd, instruction.immediate);
+      common::OP_JAL: return $sformatf("JAL   x%0d=PC+4; PC=PC+0x%0h", instruction.rd, instruction.immediate);
+      common::OP_JALR: return $sformatf("JALR  x%0d=PC+4; PC=(x%0d + 0x%0h) & ~1", instruction.rd, instruction.rs1, instruction.immediate);
       common::OP_BRANCH:
       return $sformatf(
           "%s if (x%0d %s x%0d) PC=PC+0x%0h",
@@ -158,22 +146,10 @@ module pipeline_logger #(
               instruction.funct3.b_type
           ),
           instruction.rs2,
-          instruction.immediate.b_type
+          instruction.immediate
       );
-      common::OP_LOAD:
-      return $sformatf(
-          "LOAD  x%0d=Mem[x%0d + 0x%0h]",
-          instruction.rd,
-          instruction.rs1,
-          instruction.immediate.i_type
-      );
-      common::OP_STORE:
-      return $sformatf(
-          "STORE Mem[x%0d + 0x%0h] = x%0d",
-          instruction.rs1,
-          instruction.immediate.s_type,
-          instruction.rs2
-      );
+      common::OP_LOAD: return $sformatf("LOAD  x%0d=Mem[x%0d + 0x%0h]", instruction.rd, instruction.rs1, instruction.immediate);
+      common::OP_STORE: return $sformatf("STORE Mem[x%0d + 0x%0h] = x%0d", instruction.rs1, instruction.immediate, instruction.rs2);
       common::OP_ARITHMETIC_IMMEDIATE:
       return $sformatf(
           "%s x%0d = x%0d %s %0d",
@@ -188,7 +164,7 @@ module pipeline_logger #(
                (subname == "XORI" ? "^" :
                 (subname == "ORI" ? "|" : 
                  (subname == "ANDI" ? "&" : "?"))))) : "?",
-          instruction.immediate.i_type
+          instruction.immediate
       );
       common::OP_ARITHMETIC:
       return $sformatf(
@@ -223,8 +199,7 @@ module pipeline_logger #(
     endcase
   endfunction
 
-  function string arithmetic_imm_desc(common::ITypeFunct3 funct3, logic [4:0] rd, logic [4:0] rs1,
-                                      logic [11:0] imm);
+  function string arithmetic_imm_desc(common::ITypeFunct3 funct3, logic [4:0] rd, logic [4:0] rs1, logic [31:0] imm);
     case (funct3)
       common::ADDI_OR_JAL:  return $sformatf("ADDI  x%0d = x%0d + %0d", rd, rs1, imm);
       common::XORI:         return $sformatf("XORI  x%0d = x%0d ^ %0d", rd, rs1, imm);
@@ -238,8 +213,7 @@ module pipeline_logger #(
     endcase
   endfunction
 
-  function string arithmetic_desc(common::RTypeFunct3 funct3, logic [4:0] rd, logic [4:0] rs1,
-                                  logic [4:0] rs2, logic [6:0] funct7);
+  function string arithmetic_desc(common::RTypeFunct3 funct3, logic [4:0] rd, logic [4:0] rs1, logic [4:0] rs2, logic [6:0] funct7);
     string subname;
     // Determine subname based on funct3 and funct7
     case (funct3)
@@ -278,8 +252,7 @@ module pipeline_logger #(
         $fatal("Failed to open log file.");
       end
       // Print column headers
-      $fwrite(log_file, "%-6s %-15s %-40s %-40s %-40s %-40s\n", "Cycle", "FETCH", "DECODE",
-              "EXECUTE", "MEMORY", "WRITEBACK");
+      $fwrite(log_file, "%-6s %-15s %-40s %-40s %-40s %-40s\n", "Cycle", "FETCH", "DECODE", "EXECUTE", "MEMORY", "WRITEBACK");
     end else begin
       sramport_data_write_data_q <= sramport_data.write_data;
       sramport_data_address_q <= sramport_data.address;
@@ -294,21 +267,14 @@ module pipeline_logger #(
 
       // Decode stage
       if (axis_decode_to_execute.tvalid && axis_decode_to_execute.tready) begin
-        decode_buffer = $sformatf(
-            "%s", get_instruction_description(axis_decode_to_execute.tdata.decoded_instruction));
+        decode_buffer = $sformatf("%s", get_instruction_description(axis_decode_to_execute.tdata.decoded_instruction));
       end else begin
         decode_buffer = "...";
       end
 
       // Execute stage
       if (axis_execute_to_memory.tvalid && axis_execute_to_memory.tready) begin
-        execute_buffer = $sformatf(
-            "%s = %0d",
-            get_instruction_description(
-              axis_execute_to_memory.tdata.decoded_instruction
-            ),
-            axis_execute_to_memory.tdata.alu_result
-        );
+        execute_buffer = $sformatf("%s = %0d", get_instruction_description(axis_execute_to_memory.tdata.decoded_instruction), axis_execute_to_memory.tdata.alu_result);
       end else begin
         execute_buffer = "...";
       end
@@ -316,21 +282,14 @@ module pipeline_logger #(
       // Memory stage
       if (axis_memory_to_writeback.tvalid && axis_memory_to_writeback.tready) begin
         // Determine if the instruction is a memory read (LOAD) or write (STORE)
-        string mem_subname = get_instruction_subname(
-            axis_memory_to_writeback.tdata.decoded_instruction
-        );
-        string opcode = get_instruction_description(
-            axis_memory_to_writeback.tdata.decoded_instruction
-        );
-        if (axis_memory_to_writeback.tdata.decoded_instruction.opcode == common::OP_LOAD ||
-            axis_memory_to_writeback.tdata.decoded_instruction.opcode == common::OP_STORE) begin
+        static string mem_subname = get_instruction_subname(axis_memory_to_writeback.tdata.decoded_instruction);
+        static string opcode = get_instruction_description(axis_memory_to_writeback.tdata.decoded_instruction);
+        if (axis_memory_to_writeback.tdata.decoded_instruction.opcode == common::OP_LOAD || axis_memory_to_writeback.tdata.decoded_instruction.opcode == common::OP_STORE) begin
           memory_buffer = $sformatf(
               "%s, Addr:0x%0h, Data:0x%0h",
               mem_subname,  // e.g., "LOAD" or "STORE"
               sramport_data_address_q,
-              (axis_memory_to_writeback.tdata.decoded_instruction.opcode == common::OP_STORE) 
-                  ? sramport_data_write_data_q 
-                  : sramport_data.read_data
+              (axis_memory_to_writeback.tdata.decoded_instruction.opcode == common::OP_STORE) ? sramport_data_write_data_q : sramport_data.read_data
           );
         end else begin
           // For non-memory operations, only display the opcode
@@ -343,15 +302,13 @@ module pipeline_logger #(
       // Writeback stage
       // Assuming 'registerport_write' is connected or defined elsewhere
       if (registerport_write.enable) begin
-        writeback_buffer =
-            $sformatf("Reg:x%0d, Data:%h", registerport_write.address, registerport_write.data);
+        writeback_buffer = $sformatf("Reg:x%0d, Data:%h", registerport_write.address, registerport_write.data);
       end else begin
         writeback_buffer = "...";
       end
 
       // Write the buffers to the file with fixed column widths
-      $fwrite(log_file, "%-6d %-15s %-40s %-40s %-40s %-40s\n", cycle_count, fetch_buffer,
-              decode_buffer, execute_buffer, memory_buffer, writeback_buffer);
+      $fwrite(log_file, "%-6d %-15s %-40s %-40s %-40s %-40s\n", cycle_count, fetch_buffer, decode_buffer, execute_buffer, memory_buffer, writeback_buffer);
     end
   end
 

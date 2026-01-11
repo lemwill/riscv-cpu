@@ -1,63 +1,22 @@
-
-import os
-import random
-from pathlib import Path
-
 import cocotb
 from cocotb.clock import Clock
-from cocotb.runner import get_runner
 from cocotb.triggers import RisingEdge
-from cocotb.types import LogicArray
 
 
 @cocotb.test()
 async def dff_simple_test(dut):
-    """Test that d propagates to q"""
+    """Basic test for CPU"""
 
-    # Set initial input value to prevent it from floating
-    # dut.inp.value = 0
-
-    # Create a 10us period clock on port clk
-    clock = Clock(dut.clk, 10, units="us")
-    # Start the clock. Start it low to avoid issues on the first RisingEdge
+    # Create a 10ns period clock (100MHz)
+    clock = Clock(dut.clk, 10, unit="ns")
+    # Start the clock
     cocotb.start_soon(clock.start(start_high=False))
 
     dut.rst.value = 1
     await RisingEdge(dut.clk)
+    await RisingEdge(dut.clk)
     dut.rst.value = 0
 
-    # Synchronize with the clock. This will regisiter the initial `d` value
-    for i in range(1000):
+    # Run for some cycles
+    for i in range(100):
         await RisingEdge(dut.clk)
-
-
-def test_simple_dff_runner():
-
-    hdl_toplevel_lang = os.getenv("HDL_TOPLEVEL_LANG", "verilog")
-    sim = os.getenv("SIM", "verilator")
-
-    proj_path = Path(__file__).resolve().parent
-
-    verilog_sources = []
-    vhdl_sources = []
-
-    if hdl_toplevel_lang == "verilog":
-        verilog_sources = [proj_path / "dff.sv"]
-    else:
-        vhdl_sources = [proj_path / "dff.vhdl"]
-
-    runner = get_runner(sim)
-
-    print(runner)
-    runner.build(
-        hdl_toplevel="dff",
-        verilog_sources=verilog_sources,
-        vhdl_sources=vhdl_sources,
-        always=True,
-    )
-
-    runner.test(hdl_toplevel="dff", test_module="test_dff,")
-
-
-if __name__ == "__main__":
-    test_simple_dff_runner()

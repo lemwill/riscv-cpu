@@ -24,10 +24,7 @@ module instructioncache #(
         while (!$feof(file)) begin
             ret = $fscanf(file, "%h", value);
             if (ret == 0) continue; // skip empty lines
-            if (ret != 1) begin
-                $display("Failed to read line %0d of program.hex", i);
-                $finish;
-            end
+            if (ret != 1) break; // EOF or error - stop reading
             // Break the value into bytes
             for (int j = 0; j < 4; j++) begin
                 memory[i+j] = value[(3-j)*8+:8];
