@@ -2,7 +2,9 @@
 // Define inputs and outputs
 import common::*;
 
-module cpu (
+module cpu #(
+    parameter TEST = 0
+) (
     input logic clk,
     input logic rst
 );
@@ -44,7 +46,7 @@ module cpu (
 
   datacache #(
       .DATA_WIDTH(REGISTER_WIDTH),
-      .DEPTH(1000)
+      .DEPTH(10000)
   ) i_datacache (
       .clk,
       .read_write(sramport_data)

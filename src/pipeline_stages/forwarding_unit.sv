@@ -29,6 +29,13 @@ module forwarding_unit (
     rs1_value = axis_decode_to_execute.tdata.rs1_value;
     rs2_value = axis_decode_to_execute.tdata.rs2_value;
 
+    // Forwarding from writeback stage
+    if (registerport_write_enable_q && registerport_write_address_q == axis_decode_to_execute.tdata.decoded_instruction.rs1) begin
+      rs1_value = registerport_write_data_q;
+    end else if (registerport_write_enable_q && registerport_write_address_q == axis_decode_to_execute.tdata.decoded_instruction.rs2) begin
+      rs2_value = registerport_write_data_q;
+    end
+
     // Forwarding from memory stage
     if (axis_memory_to_writeback.tvalid && axis_memory_to_writeback.tdata.decoded_instruction.opcode != 0) begin
       if (axis_decode_to_execute.tdata.decoded_instruction.opcode == OP_ARITHMETIC || 
@@ -74,12 +81,8 @@ module forwarding_unit (
       end
     end
 
-    // Forwarding from writeback stage
-    if (registerport_write_enable_q && registerport_write_address_q == axis_decode_to_execute.tdata.decoded_instruction.rs1) begin
-      rs1_value = registerport_write_data_q;
-    end else if (registerport_write_enable_q && registerport_write_address_q == axis_decode_to_execute.tdata.decoded_instruction.rs2) begin
-      rs2_value = registerport_write_data_q;
-    end
+
+
   end
 
 endmodule

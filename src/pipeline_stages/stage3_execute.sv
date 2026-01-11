@@ -15,9 +15,9 @@ module stage3_execute (
   //====================================================================================
   // Signal definitions
   //====================================================================================
-  logic [REGISTER_WIDTH-1:0] alu_input2;
+  logic signed [REGISTER_WIDTH-1:0] alu_input2;
   logic [REGISTER_WIDTH-1:0] immediate;
-  logic [REGISTER_WIDTH-1:0] alu_result;
+  logic signed [REGISTER_WIDTH-1:0] alu_result;
   logic [REGISTER_WIDTH-1:0] program_counter;
   instruction_t decoded_instruction;
 
@@ -37,6 +37,93 @@ module stage3_execute (
   assign program_counter = axis_decode_to_execute.tdata.program_counter;
 
   //====================================================================================
+  // Opcode tasks
+  //====================================================================================
+  task handle_arithmetic_immediate();
+    alu_input2 = decoded_instruction.immediate;
+    case (decoded_instruction.funct3)
+      ADDI_OR_JAL: alu_result = rs1_value + alu_input2;
+      XORI: alu_result = rs1_value ^ alu_input2;
+      ORI: alu_result = rs1_value | alu_input2;
+      ANDI: alu_result = rs1_value & alu_input2;
+      SLLI: alu_result = rs1_value << alu_input2[4:0];
+      SRLI_OR_SRAI: alu_result = rs1_value >> alu_input2[4:0];
+      SLTI: alu_result = (rs1_value < alu_input2) ? 1 : 0;
+      SLTUI: alu_result = (rs1_value < alu_input2) ? 1 : 0;
+      default: alu_result = 0;
+    endcase
+  endtask
+
+  task handle_arithmetic();
+    alu_input2 = rs2_value;
+    case (decoded_instruction.funct3)
+      ADD_OR_SUB: begin
+        if (decoded_instruction.funct7 == FUNCT7_ADD_SUB)
+          alu_result = rs1_value + alu_input2;  // ADD
+        else if (decoded_instruction.funct7 == FUNCT7_SUB)
+          alu_result = rs1_value - alu_input2;  // SUB
+        else alu_result = 0;  // Undefined operation
+      end
+      XOR: alu_result = rs1_value ^ alu_input2;
+      OR: alu_result = rs1_value | alu_input2;
+      AND: alu_result = rs1_value & alu_input2;
+      SLL: alu_result = rs1_value << alu_input2[4:0];
+      SRL_OR_SRA: begin
+        if (decoded_instruction.funct7 == FUNCT7_SRL_SRA)
+          alu_result = rs1_value >> alu_input2[4:0];  // SRL
+        else if (decoded_instruction.funct7 == FUNCT7_SRA)
+          alu_result = $signed(rs1_value) >>> alu_input2[4:0];  // SRA
+        else alu_result = 0;  // Undefined operation
+      end
+      SLT: alu_result = (rs1_value < alu_input2) ? 1 : 0;
+      SLTU: alu_result = (rs1_value < alu_input2) ? 1 : 0;
+      default: alu_result = 0;
+    endcase
+  endtask
+
+  task handle_branch();
+    case (decoded_instruction.funct3)
+      BEQ: branch_taken_next = (rs1_value == rs2_value);
+      BNE: branch_taken_next = (rs1_value != rs2_value);
+      BLT: branch_taken_next = ($signed(rs1_value) < $signed(rs2_value));
+      BGE: branch_taken_next = ($signed(rs1_value) >= $signed(rs2_value));
+      BLTU: branch_taken_next = (rs1_value < rs2_value);
+      BGEU: branch_taken_next = (rs1_value >= rs2_value);
+      default: branch_taken_next = 0;
+    endcase
+    branch_target_next = program_counter + decoded_instruction.immediate;
+  endtask
+
+  task handle_jalr();
+    branch_taken_next = 1;
+    branch_target_next = rs1_value + decoded_instruction.immediate;
+    alu_result = program_counter + 4;
+  endtask
+
+
+  task handle_jal();
+    branch_taken_next = 1;
+    branch_target_next = program_counter + decoded_instruction.immediate;
+    alu_result = program_counter + 4;
+  endtask
+
+
+
+  task handle_load();
+    load_address = rs1_value + decoded_instruction.immediate;
+  endtask
+
+  task handle_store();
+    store_address = rs1_value + decoded_instruction.immediate;
+    store_data = rs2_value;
+  endtask
+
+  task handle_auipc();
+    alu_result = program_counter + decoded_instruction.immediate;
+  endtask
+
+
+  //====================================================================================
   // Handle opcode process
   //====================================================================================
   always_comb begin
@@ -49,68 +136,14 @@ module stage3_execute (
     alu_result = 0;
 
     case (decoded_instruction.opcode)
-      OP_ARITHMETIC_IMMEDIATE: begin
-        alu_input2 = decoded_instruction.immediate;
-        case (decoded_instruction.funct3)
-          ADDI_OR_JAL: alu_result = rs1_value + alu_input2;
-          XORI: alu_result = rs1_value ^ alu_input2;
-          ORI: alu_result = rs1_value | alu_input2;
-          ANDI: alu_result = rs1_value & alu_input2;
-          SLLI: alu_result = rs1_value << alu_input2[4:0];
-          SRLI_OR_SRAI: alu_result = rs1_value >> alu_input2[4:0];
-          SLTI: alu_result = (rs1_value < alu_input2) ? 1 : 0;
-          SLTUI: alu_result = (rs1_value < alu_input2) ? 1 : 0;
-          default: alu_result = 0;
-        endcase
-      end
-
-      OP_ARITHMETIC: begin
-        alu_input2 = rs2_value;
-        case (decoded_instruction.funct3)
-          ADD_OR_SUB: alu_result = rs1_value + alu_input2;
-          XOR: alu_result = rs1_value ^ alu_input2;
-          OR: alu_result = rs1_value | alu_input2;
-          AND: alu_result = rs1_value & alu_input2;
-          SLL: alu_result = rs1_value << alu_input2[4:0];
-          SRL_OR_SRA: alu_result = rs1_value >> alu_input2[4:0];
-          SLT: alu_result = (rs1_value < alu_input2) ? 1 : 0;
-          SLTU: alu_result = (rs1_value < alu_input2) ? 1 : 0;
-          default: alu_result = 0;
-        endcase
-      end
-
-      OP_BRANCH: begin
-        case (decoded_instruction.funct3)
-          BEQ: branch_taken_next = (rs1_value == rs2_value);
-          BNE: branch_taken_next = (rs1_value != rs2_value);
-          BLT: branch_taken_next = ($signed(rs1_value) < $signed(rs2_value));
-          BGE: branch_taken_next = ($signed(rs1_value) >= $signed(rs2_value));
-          BLTU: branch_taken_next = (rs1_value < rs2_value);
-          BGEU: branch_taken_next = (rs1_value >= rs2_value);
-          default: branch_taken_next = 0;
-        endcase
-        branch_target_next = program_counter + decoded_instruction.immediate;
-      end
-
-      OP_JALR: begin
-        branch_taken_next  = 1;
-        branch_target_next = rs1_value + decoded_instruction.immediate;
-      end
-
-      OP_JAL: begin
-        branch_taken_next  = 1;
-        branch_target_next = program_counter + decoded_instruction.immediate;
-      end
-
-      OP_LOAD: begin
-        load_address = rs1_value + decoded_instruction.immediate;
-      end
-
-      OP_STORE: begin
-        store_address = rs1_value + decoded_instruction.immediate;
-        store_data = rs2_value;
-      end
-
+      OP_ARITHMETIC_IMMEDIATE: handle_arithmetic_immediate();
+      OP_ARITHMETIC: handle_arithmetic();
+      OP_BRANCH: handle_branch();
+      OP_JALR: handle_jalr();
+      OP_JAL: handle_jal();
+      OP_LOAD: handle_load();
+      OP_STORE: handle_store();
+      OP_AUIPC: handle_auipc();
       default: begin
       end
     endcase

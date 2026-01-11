@@ -19,11 +19,14 @@ module stage2_decode #(
   logic [$clog2(REGISTER_DEPTH)-1:0] read_address_2;
 
   always_comb begin
-    decoded_instruction = 0;
+    decoded_instruction = 0;  // Initialize all fields to zero
     case (undecoded_instruction.opcode)
       OP_ARITHMETIC_IMMEDIATE, OP_LOAD, OP_JALR: begin  // I-TYPE
         decoded_instruction.opcode = undecoded_instruction.opcode;
-        decoded_instruction.immediate = {{20{undecoded_instruction.instr.i_type.immediate[11]}}, undecoded_instruction.instr.i_type.immediate};
+        decoded_instruction.immediate = {
+          {20{undecoded_instruction.instr.i_type.immediate[11]}},
+          undecoded_instruction.instr.i_type.immediate
+        };
         decoded_instruction.rs1 = undecoded_instruction.instr.i_type.rs1;
         decoded_instruction.funct3 = undecoded_instruction.instr.i_type.funct3;
         decoded_instruction.rd = undecoded_instruction.instr.i_type.rd;
@@ -50,7 +53,6 @@ module stage2_decode #(
         decoded_instruction.rs2 = undecoded_instruction.instr.b_type.rs2;
         decoded_instruction.rs1 = undecoded_instruction.instr.b_type.rs1;
         decoded_instruction.funct3 = undecoded_instruction.instr.b_type.funct3;
-
       end
       OP_JAL: begin  // J-TYPE
         decoded_instruction.opcode = undecoded_instruction.opcode;
@@ -64,19 +66,30 @@ module stage2_decode #(
         };
         decoded_instruction.rd = undecoded_instruction.instr.j_type.rd;
       end
-
       OP_STORE: begin  // S-TYPE
         decoded_instruction.opcode = undecoded_instruction.opcode;
-        decoded_instruction.immediate = {{20{undecoded_instruction.instr.s_type.immediate_11_5[6]}}, undecoded_instruction.instr.s_type.immediate_11_5, undecoded_instruction.instr.s_type.immediate_4_0};
+        decoded_instruction.immediate = {
+          {20{undecoded_instruction.instr.s_type.immediate_11_5[6]}},
+          undecoded_instruction.instr.s_type.immediate_11_5,
+          undecoded_instruction.instr.s_type.immediate_4_0
+        };
         decoded_instruction.rs2 = undecoded_instruction.instr.s_type.rs2;
         decoded_instruction.rs1 = undecoded_instruction.instr.s_type.rs1;
         decoded_instruction.funct3 = undecoded_instruction.instr.s_type.funct3;
       end
+      OP_AUIPC: begin  // U-TYPE
+        decoded_instruction.opcode = undecoded_instruction.opcode;
+        decoded_instruction.immediate = {undecoded_instruction.instr.u_type.immediate, 12'b0};
+        decoded_instruction.rd = undecoded_instruction.instr.u_type.rd;
+      end
       default: begin
+        // Optionally handle unknown opcodes or raise an exception
+        // For debugging:
+        $display("Decode Stage: Unknown opcode %h at PC %h", undecoded_instruction.opcode,
+                 axis_fetch_to_decode.tdata.program_counter);
       end
     endcase
   end
-
 
   always_comb begin
     read_address_1 = 0;
@@ -84,8 +97,13 @@ module stage2_decode #(
     read_enable = 0;
 
     case (decoded_instruction.opcode)
-      OP_ARITHMETIC_IMMEDIATE, OP_JALR, OP_ARITHMETIC: begin
+      OP_ARITHMETIC_IMMEDIATE, OP_JALR: begin
         read_address_1 = decoded_instruction.rs1;
+        read_enable = 1;
+      end
+      OP_ARITHMETIC: begin  // R-TYPE instructions need both rs1 and rs2
+        read_address_1 = decoded_instruction.rs1;
+        read_address_2 = decoded_instruction.rs2;
         read_enable = 1;
       end
       OP_STORE: begin
@@ -93,13 +111,17 @@ module stage2_decode #(
         read_address_2 = decoded_instruction.rs2;
         read_enable = 1;
       end
-
       OP_BRANCH: begin
         read_address_1 = decoded_instruction.rs1;
         read_address_2 = decoded_instruction.rs2;
         read_enable = 1;
       end
-
+      OP_AUIPC: begin
+        // AUIPC does not require reading registers, as it uses PC and an immediate
+        read_address_1 = 0;
+        read_address_2 = 0;
+        read_enable = 0;
+      end
       default: begin
         // Default case to handle other opcodes
         read_address_1 = 0;
@@ -109,10 +131,10 @@ module stage2_decode #(
     endcase
   end
 
-  assign registerport_read_1.enable  = read_enable;
+  assign registerport_read_1.enable  = read_enable && (decoded_instruction.opcode != OP_AUIPC);
   assign registerport_read_1.address = read_address_1;
 
-  assign registerport_read_2.enable  = read_enable;
+  assign registerport_read_2.enable  = read_enable && (decoded_instruction.opcode != OP_AUIPC);
   assign registerport_read_2.address = read_address_2;
 
   // Flops
@@ -127,14 +149,18 @@ module stage2_decode #(
         axis_decode_to_execute.tdata.decoded_instruction <= decoded_instruction;
         axis_decode_to_execute.tdata.branch_taken_prediction <= axis_fetch_to_decode.tdata.branch_taken_prediction;
 
-        axis_decode_to_execute.tdata.rs1_value <= registerport_read_1.data;
-        axis_decode_to_execute.tdata.rs2_value <= registerport_read_2.data;
+        // For U-Type instructions like AUIPC, rs1 and rs2 are not used
+        if (decoded_instruction.opcode != OP_AUIPC) begin
+          axis_decode_to_execute.tdata.rs1_value <= registerport_read_1.data;
+          axis_decode_to_execute.tdata.rs2_value <= registerport_read_2.data;
+        end else begin
+          axis_decode_to_execute.tdata.rs1_value <= 0;
+          axis_decode_to_execute.tdata.rs2_value <= 0;
+        end
       end
     end
   end
 
-
   assign axis_fetch_to_decode.tready = axis_decode_to_execute.tready;
-
 
 endmodule

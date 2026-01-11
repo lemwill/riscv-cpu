@@ -4,8 +4,8 @@ from cocotb.triggers import RisingEdge
 
 
 @cocotb.test()
-async def dff_simple_test(dut):
-    """Basic test for CPU"""
+async def test_basic(dut):
+    """Test that d propagates to q"""
 
     # Create a 10ns period clock (100MHz)
     clock = Clock(dut.clk, 10, unit="ns")

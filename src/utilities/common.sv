@@ -1,4 +1,3 @@
-
 package common;
 
   localparam REGISTER_WIDTH = 32;
@@ -7,14 +6,10 @@ package common;
 
   typedef logic [REGISTER_WIDTH-1:0] RegisterValue;
 
-  /*typedef enum logic [6:0] {
-        I_TYPE = 7'b0010011, 
-        R_TYPE = 7'b0110011,
-        S_TYPE = 7'b0100011,
-        B_TYPE = 7'b1100011,
-        U_TYPE = 7'b0110111,
-        J_TYPE = 7'b1101111
-    } OpCode;*/
+  localparam [6:0] FUNCT7_ADD_SUB = 7'b0000000;  // ADD
+  localparam [6:0] FUNCT7_SUB = 7'b0100000;  // SUB
+  localparam [6:0] FUNCT7_SRL_SRA = 7'b0000000;  // SRL
+  localparam [6:0] FUNCT7_SRA = 7'b0100000;  // SRA
 
   typedef enum logic [6:0] {
     OP_LUI                  = 7'b0110111,  // Load Upper Immediate
@@ -103,7 +98,6 @@ package common;
     logic [4:0] immediate_4_0;
   } s_type_t;
 
-
   typedef struct packed {
     logic [12:12] immediate_12;
     logic [10:5]  immediate_10_5;
@@ -123,16 +117,21 @@ package common;
   } j_type_t;
 
   typedef struct packed {
+    logic [31:12] immediate;  // Immediate for U-Type
+    logic [4:0]   rd;         // Destination register
+  } u_type_t;  // Added for U-Type instructions
+
+  typedef struct packed {
     union packed {
       r_type_t r_type;
       i_type_t i_type;
       s_type_t s_type;
       b_type_t b_type;
       j_type_t j_type;
+      u_type_t u_type;  // Included U-Type
     } instr;
     OpCode opcode;
   } instruction_undecoded_t;
-
 
   typedef struct packed {
     logic [31:0] immediate;  // Sign-extended immediate value
@@ -181,5 +180,3 @@ package common;
   parameter MEM_ADDRESS_WIDTH = 32;
 
 endpackage
-
-
